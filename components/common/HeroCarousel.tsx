@@ -21,12 +21,12 @@ const heroSlides: HeroSlide[] = [
   },
   {
     type: "video",
-    src: "/home/impact123.mp4",
+    src: "https://lwk0xhujsazl5rt4.public.blob.vercel-storage.com/home-assets/impact123.mp4",
     alt: "Impact & Solutions expo",
   },
   {
     type: "video",
-    src: "/home/impact-hero.mp4",
+    src: "https://lwk0xhujsazl5rt4.public.blob.vercel-storage.com/home-assets/impact-hero.mp4",
     alt: "Impact & Solutions products",
   },
   {
