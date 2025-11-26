@@ -91,7 +91,7 @@ export default function Footer() {
                   <div className="w-fit">
                     <div className="">
                       <Image
-                        src="/logo-redraw-white.png"
+                        src="/Logo-redraw-white.png"
                         alt="IMPACT & Solutions Logo"
                         width={160}
                         height={60}

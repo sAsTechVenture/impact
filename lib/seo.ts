@@ -72,11 +72,6 @@ export function generateMetadata({
       creator: "@impactsolutions",
       site: "@impactsolutions",
     },
-    viewport: {
-      width: "device-width",
-      initialScale: 1,
-      maximumScale: 5,
-    },
     verification: {
       // Add Google Search Console verification when available
       // google: "your-verification-code",

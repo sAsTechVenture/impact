@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Header, Footer } from "@/components/common";
@@ -34,15 +34,21 @@ export const metadata: Metadata = {
       "biotech clean utilities",
     ],
   }),
-  viewport: {
-    width: "device-width",
-    initialScale: 1,
-    maximumScale: 5,
-  },
-  themeColor: "#234C90",
   icons: {
-    icon: "/favicon.ico",
+    icon: [
+      { url: "/Logo-redraw-white.png", sizes: "32x32", type: "image/png" },
+      { url: "/Logo-redraw-white.png", sizes: "16x16", type: "image/png" },
+    ],
+    shortcut: "/Logo-redraw-white.png",
+    apple: "/Logo-redraw-white.png",
   },
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 5,
+  themeColor: "#234C90",
 };
 
 export default function RootLayout({
@@ -53,7 +59,7 @@ export default function RootLayout({
   const jsonLd = generateJsonLd();
 
   return (
-    <html lang="en">
+    <html lang="en" data-scroll-behavior="smooth">
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >

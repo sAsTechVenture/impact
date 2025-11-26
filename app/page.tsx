@@ -63,7 +63,7 @@ const services = [
       "Rapid response teams dedicated to minimizing downtime during critical system failures with 24/7 support.",
   },
   {
-    image: "https://images.unsplash.com/photo-1556761175-b3da8d37e024?w=800&q=80",
+    image: "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=800&q=80",
     title: "Training Programs",
     description:
       "Expert-led technical training programs for staff on system operation, maintenance, and safety protocols.",
@@ -114,7 +114,7 @@ const products = [
     category: "Quality Assurance",
   },
   {
-    image: "https://images.unsplash.com/photo-1576086213369-97a306d3655b?w=800&q=80",
+    image: "https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?w=800&q=80",
     title: "Microbial Air Sampler",
     description:
       "Advanced microbial air sampling systems for environmental monitoring, contamination control, and quality assurance in sterile environments.",

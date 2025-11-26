@@ -170,59 +170,109 @@ function HeroSection() {
   return (
     <section
       ref={ref}
-      className={`relative h-screen overflow-hidden flex items-center ${
+      className={`relative min-h-screen overflow-hidden flex items-center ${
         isVisible ? "scroll-animate visible" : "scroll-animate"
       }`}
       style={{
         background: "conic-gradient(from 152.22deg at 50% 50%, #75A8CC -10.97deg, #234C90 137.17deg, #75A8CC 349.03deg, #234C90 497.17deg)",
       }}
     >
-      <div className="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 w-full">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-center h-full">
-          {/* Left Side - Text */}
-          <div className="text-white space-y-6 z-10">
-            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold leading-tight">
+      {/* Background Images and Circle - Only visible on mobile/tablet (below 1024px) */}
+      <div className="absolute inset-0 flex items-center justify-center overflow-hidden lg:hidden">
+        <div className="relative w-full max-w-[800px] h-full flex items-center justify-center">
+          {/* Large Yellow Circle - Centered (smaller) */}
+          <div
+            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[250px] h-[250px] sm:w-[300px] sm:h-[300px] md:w-[350px] md:h-[350px] rounded-full z-0 opacity-80"
+            style={{ backgroundColor: "#D4ED31" }}
+          />
+          
+          {/* Top Right Image - People working at table */}
+          <div className="absolute top-[15%] right-[10%] sm:top-[12%] sm:right-[8%] md:top-[10%] md:right-[5%] w-32 h-32 sm:w-40 sm:h-40 md:w-48 md:h-48 rounded-lg overflow-hidden border-2 border-black shadow-xl z-10 opacity-90">
+            <Image
+              src="/about/ppl-working-table.svg"
+              alt="People working collaboratively at a table"
+              fill
+              className="object-cover"
+              loading="lazy"
+              sizes="(max-width: 640px) 128px, (max-width: 768px) 160px, 192px"
+            />
+          </div>
+          
+          {/* Bottom Left Image - Office hallway */}
+          <div className="absolute bottom-[15%] left-[10%] sm:bottom-[12%] sm:left-[8%] md:bottom-[10%] md:left-[5%] w-32 h-32 sm:w-40 sm:h-40 md:w-48 md:h-48 rounded-lg overflow-hidden border-2 border-black shadow-xl z-10 opacity-90">
+            <Image
+              src="/about/ppl-standing-table.jpg"
+              alt="Modern office hallway with glass panels"
+              fill
+              className="object-cover"
+              loading="lazy"
+              sizes="(max-width: 640px) 128px, (max-width: 768px) 160px, 192px"
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Text Content Overlay - Mobile/Tablet (below 1024px) */}
+      <div className="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 w-full relative z-20 lg:hidden">
+        <div className="max-w-3xl">
+          <div className="text-white space-y-6">
+            <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold leading-tight drop-shadow-lg">
               We are India&apos;s leading company in delivering innovative
               solutions that create lasting impact across industries worldwide.
             </h1>
-            <p className="text-base sm:text-lg lg:text-xl leading-relaxed font-normal opacity-90">
+            <p className="text-base sm:text-lg md:text-xl leading-relaxed font-normal opacity-95 drop-shadow-md">
               At Impact & Solutions, we believe that water, purity, and
               reliability are the pillars that keep critical industries moving.
             </p>
           </div>
+        </div>
+      </div>
 
-          {/* Right Side - Images with Yellow Circle */}
-          <div className="relative h-full flex items-center justify-center lg:justify-end">
-            <div className="relative w-full max-w-[600px] h-full flex items-center justify-center">
-              {/* Large Yellow Circle - Centered */}
-              <div
-                className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] sm:w-[500px] sm:h-[500px] lg:w-[600px] lg:h-[600px] rounded-full z-0"
-                style={{ backgroundColor: "#D4ED31" }}
+      {/* Side-by-side Layout - Laptop and larger (1024px+) */}
+      <div className="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 w-full hidden lg:grid lg:grid-cols-2 gap-8 lg:gap-12 items-center">
+        {/* Left Side - Text */}
+        <div className="text-white space-y-6 z-10">
+          <h1 className="text-3xl sm:text-4xl lg:text-5xl xl:text-6xl font-bold leading-tight">
+            We are India&apos;s leading company in delivering innovative
+            solutions that create lasting impact across industries worldwide.
+          </h1>
+          <p className="text-base sm:text-lg lg:text-xl leading-relaxed font-normal opacity-90">
+            At Impact & Solutions, we believe that water, purity, and
+            reliability are the pillars that keep critical industries moving.
+          </p>
+        </div>
+
+        {/* Right Side - Images with Yellow Circle */}
+        <div className="relative min-h-[500px] lg:min-h-[600px] xl:min-h-[700px] flex items-center justify-center lg:justify-end">
+          <div className="relative w-full max-w-[500px] sm:max-w-[600px] aspect-square flex items-center justify-center">
+            {/* Large Yellow Circle - Centered (smaller) */}
+            <div
+              className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[300px] h-[300px] lg:w-[350px] lg:h-[350px] xl:w-[400px] xl:h-[400px] rounded-full z-0"
+              style={{ backgroundColor: "#D4ED31" }}
+            />
+            
+            {/* Top Right Image - People working at table */}
+            <div className="absolute top-[10%] right-[0%] w-48 h-48 lg:w-56 lg:h-56 xl:w-64 xl:h-64 rounded-lg overflow-hidden border-2 border-black shadow-xl z-10">
+              <Image
+                src="/about/ppl-working-table.svg"
+                alt="People working collaboratively at a table"
+                fill
+                className="object-cover"
+                loading="lazy"
+                sizes="(max-width: 1280px) 224px, 256px"
               />
-              
-              {/* Top Right Image - People working at table */}
-              <div className="absolute top-[15%] right-[5%] sm:top-[10%] sm:right-[0%] w-48 h-48 sm:w-56 sm:h-56 lg:w-64 lg:h-64 rounded-lg overflow-hidden border-2 border-black shadow-xl z-10">
-                <Image
-                  src="/about/ppl-working-table.svg"
-                  alt="People working collaboratively at a table"
-                  fill
-                  className="object-cover"
-                  loading="lazy"
-                  sizes="(max-width: 1024px) 50vw, 25vw"
-                />
-              </div>
-              
-              {/* Bottom Left Image - Office hallway */}
-              <div className="absolute bottom-[15%] left-[5%] sm:bottom-[10%] sm:left-[0%] w-48 h-48 sm:w-56 sm:h-56 lg:w-64 lg:h-64 rounded-lg overflow-hidden border-2 border-black shadow-xl z-10">
-                <Image
-                  src="/about/ppl-standing-table.jpg"
-                  alt="Modern office hallway with glass panels"
-                  fill
-                  className="object-cover"
-                  loading="lazy"
-                  sizes="(max-width: 1024px) 50vw, 25vw"
-                />
-              </div>
+            </div>
+            
+            {/* Bottom Left Image - Office hallway */}
+            <div className="absolute bottom-[10%] left-[0%] w-48 h-48 lg:w-56 lg:h-56 xl:w-64 xl:h-64 rounded-lg overflow-hidden border-2 border-black shadow-xl z-10">
+              <Image
+                src="/about/ppl-standing-table.jpg"
+                alt="Modern office hallway with glass panels"
+                fill
+                className="object-cover"
+                loading="lazy"
+                sizes="(max-width: 1280px) 224px, 256px"
+              />
             </div>
           </div>
         </div>
