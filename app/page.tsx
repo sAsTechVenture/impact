@@ -8,6 +8,11 @@ import HeroCarousel from "@/components/common/HeroCarousel";
 import { colors } from "@/config/theme";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Metadata } from "next";
+import { generateMetadata as generateSEOMetadata } from "@/lib/seo";
+
+// Note: Metadata export doesn't work with "use client" components
+// This will be handled in a separate metadata file or the layout
 
 // Feature icons data
 const features = [
