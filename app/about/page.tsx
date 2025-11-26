@@ -78,31 +78,36 @@ const timelineData = [
     year: 2018,
     title: "Company Founded",
     description: "Inception & foundational team",
-    image: "https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=800&q=80",
+    image:
+      "https://images.unsplash.com/photo-1529333166437-7750a6dd5a70?w=800&q=80&auto=format&fit=crop",
   },
   {
     year: 2020,
     title: "200+ Installations",
     description: "Reached milestone of 200+ installations across India",
-    image: "https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=800&q=80",
+    image:
+      "https://images.unsplash.com/photo-1581093806997-124204d9fa9d?w=800&q=80&auto=format&fit=crop",
   },
   {
     year: 2022,
     title: "Global Expansion",
     description: "International expansion & global partnerships",
-    image: "https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=800&q=80",
+    image:
+      "https://images.unsplash.com/photo-1504384308090-c894fdcc538d?w=800&q=80&auto=format&fit=crop",
   },
   {
     year: 2024,
     title: "Digital Innovation",
     description: "Advanced technologies & digital services",
-    image: "https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=800&q=80",
+    image:
+      "https://images.unsplash.com/photo-1520607162513-77705c0f0d4a?w=800&q=80&auto=format&fit=crop",
   },
   {
     year: 2025,
     title: "Sustainable Future",
     description: "Sustainability & future-ready clean-utility solutions",
-    image: "https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=800&q=80",
+    image:
+      "https://images.unsplash.com/photo-1509391366360-2e959784a276?w=800&q=80&auto=format&fit=crop",
   },
 ];
 
@@ -200,7 +205,7 @@ function HeroSection() {
               {/* Top Right Image - People working at table */}
               <div className="absolute top-[15%] right-[5%] sm:top-[10%] sm:right-[0%] w-48 h-48 sm:w-56 sm:h-56 lg:w-64 lg:h-64 rounded-lg overflow-hidden border-2 border-black shadow-xl z-10">
                 <Image
-                  src="https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=800&q=80"
+                  src="/about/ppl-working-table.svg"
                   alt="People working collaboratively at a table"
                   fill
                   className="object-cover"
@@ -212,7 +217,7 @@ function HeroSection() {
               {/* Bottom Left Image - Office hallway */}
               <div className="absolute bottom-[15%] left-[5%] sm:bottom-[10%] sm:left-[0%] w-48 h-48 sm:w-56 sm:h-56 lg:w-64 lg:h-64 rounded-lg overflow-hidden border-2 border-black shadow-xl z-10">
                 <Image
-                  src="https://images.unsplash.com/photo-1497366216548-37526070297c?w=800&q=80"
+                  src="/about/ppl-standing-table.jpg"
                   alt="Modern office hallway with glass panels"
                   fill
                   className="object-cover"

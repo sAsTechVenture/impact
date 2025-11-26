@@ -12,10 +12,12 @@ const quickLinks = [
 ];
 
 const services = [
-  "Consulting Solution",
-  "Product Development",
-  "Technology Integration",
-  "Strategic Planing",
+  "Annual Maintenance Support",
+  "Calibration & Validation",
+  "Operation & Maintenance",
+  "Breakdown Response Teams",
+  "Technical Training Programs",
+  "Spare Parts & Consumables",
 ];
 
 const socialLinks = [
@@ -57,7 +59,7 @@ export default function Footer() {
               <div className="flex items-center gap-2.5 text-white">
                 <Mail className="h-5 w-5 flex-shrink-0" />
                 <span className="text-sm sm:text-base">
-                  Mail us at <span className="font-semibold">inquiries@Inova.com</span>
+                  Mail us at <span className="font-semibold">connect@impactsolutions.in</span>
                 </span>
               </div>
             </div>
@@ -67,9 +69,9 @@ export default function Footer() {
               <Mail className="h-5 w-5 flex-shrink-0 mt-0.5 xl:mt-0" />
               <div className="flex flex-col">
                 <span className="text-xs sm:text-sm leading-relaxed">
-                  For complaints or feedback, email us at
+                  For dedicated partner support, email us at
                 </span>
-                <span className="text-sm sm:text-base font-semibold mt-0.5">feedback@Inovo.com</span>
+                <span className="text-sm sm:text-base font-semibold mt-0.5">support@impactsolutions.in</span>
               </div>
             </div>
           </div>
@@ -87,21 +89,23 @@ export default function Footer() {
                 <div className="flex flex-col gap-4">
                   {/* Logo Box */}
                   <div className="w-fit">
-                    <div className="bg-white p-3 sm:p-4 rounded border-2 bg-transparent">
+                    <div className="">
                       <Image
-                        src="/B-F-IMPACT.png"
+                        src="/logo-redraw-white.png"
                         alt="IMPACT & Solutions Logo"
-                        width={140}
-                        height={50}
-                        className="h-8 sm:h-10 w-auto"
+                        width={160}
+                        height={60}
+                        className="h-10 sm:h-12 w-auto"
+                        priority
                       />
                     </div>
                   </div>
-                  <h4 className="text-xl sm:text-2xl lg:text-3xl font-semibold text-white mt-2">
-                    Impact & Solution
-                  </h4>
+                  {/* <h4 className="text-xl sm:text-2xl lg:text-3xl font-semibold text-white mt-2">
+                    Impact & Solutions
+                  </h4> */}
                   <p className="text-sm sm:text-base text-white/90 leading-relaxed max-w-sm">
-                    India&apos;s leading company in innovation solution and sustainable impact
+                    Exclusive distributor for India delivering water-system critical products, clean
+                    utility solutions, and end-to-end engineering services with uncompromising quality.
                   </p>
                 </div>
               </div>
@@ -142,9 +146,12 @@ export default function Footer() {
               <div>
                 <h5 className="text-base sm:text-lg font-semibold text-white mb-5 sm:mb-6">Contact Us:</h5>
                 <div className="flex flex-col gap-3 sm:gap-4 text-sm sm:text-base text-white/90">
-                  <p className="leading-relaxed">Level 1, 12 Sample St, Sydney NSW 2000</p>
-                  <p>1800 123 4567</p>
-                  <p>email@example.com</p>
+                  <p className="leading-relaxed">
+                    Navi Mumbai (Panvel), Maharashtra<br />
+                    Serving pharmaceutical, biotech & industrial hubs across India.
+                  </p>
+                  <p>+91 99999 99999</p>
+                  <p>connect@impactsolutions.in</p>
                 </div>
                 
                 {/* Social Media Icons */}
@@ -172,7 +179,7 @@ export default function Footer() {
             <Separator className="mb-5 bg-white/30" />
             <div className="flex justify-center">
               <p className="text-sm sm:text-base text-white">
-                Impact & Solution
+                Impact & Solutions · Clean Utility & Water-System Experts
               </p>
             </div>
           </div>

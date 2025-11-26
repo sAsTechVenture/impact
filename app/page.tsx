@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import { FileText, Wrench, Microscope, ArrowRight } from "lucide-react";
+import { GlassWater, Wrench, Microscope, ArrowRight } from "lucide-react";
 import HeroCarousel from "@/components/common/HeroCarousel";
 import { colors } from "@/config/theme";
 import { Button } from "@/components/ui/button";
@@ -12,22 +12,22 @@ import { Card, CardContent } from "@/components/ui/card";
 // Feature icons data
 const features = [
   {
-    icon: FileText,
-    title: "Lorem ipsum",
+    icon: GlassWater,
+    title: "Water System Critical Products",
     description:
-      "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Ut elit tellus nec.",
+      "Comprehensive solutions for water purification and management",
   },
   {
     icon: Wrench,
-    title: "Lorem ipsum dolor",
+    title: "Engineering, Installation & Commissioning",
     description:
-      "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Ut elit tellus nec.",
+      "End-to-end project execution with expert technical support",
   },
   {
     icon: Microscope,
-    title: "Lorem ipsum",
+    title: "Validation, AMC, Calibration, Spares",
     description:
-      "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Ut elit tellus nec.",
+      "Complete lifecycle support and maintenance services",
   },
 ];
 
@@ -35,43 +35,85 @@ const features = [
 const services = [
   {
     image: "https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=800&q=80",
-    title: "Lorem ipsum",
+    title: "Annual Maintenance",
     description:
-      "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Ut elit tellus, luctus nec ullamcorper mattis, pulvinar dapibus leo.",
+      "Comprehensive yearly contracts ensuring optimal system performance and longevity for all your clean utility systems.",
   },
   {
     image: "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=800&q=80",
-    title: "Lorem ipsum",
+    title: "Calibration & Validation",
     description:
-      "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Ut elit tellus, luctus nec ullamcorper mattis, pulvinar dapibus leo.",
+      "Precision instrument calibration services adhering to international quality standards, ensuring accuracy and compliance.",
   },
   {
     image: "https://images.unsplash.com/photo-1552664730-d307ca884978?w=800&q=80",
-    title: "Lorem ipsum",
+    title: "Operation & Maintenance",
     description:
-      "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Ut elit tellus, luctus nec ullamcorper mattis, pulvinar dapibus leo.",
-  },
-];
-
-// Blog posts data
-const blogPosts = [
-  {
-    image: "https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=800&q=80",
-    title: "Lorem ipsum dolor sit amet consectetur. Accumsan.",
-    description:
-      "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Ut elit tellus, luctus nec ullamcorper mattis, pulvinar dapibus leo.",
+      "End-to-end operational support and routine maintenance for uninterrupted facility utility operations.",
   },
   {
     image: "https://images.unsplash.com/photo-1556761175-5973dc0f32e7?w=800&q=80",
-    title: "Lorem ipsum dolor sit amet consectetur. Accumsan.",
+    title: "Breakdown Visits",
     description:
-      "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Ut elit tellus, luctus nec ullamcorper mattis, pulvinar dapibus leo.",
+      "Rapid response teams dedicated to minimizing downtime during critical system failures with 24/7 support.",
   },
   {
-    image: "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=800&q=80",
-    title: "Lorem ipsum dolor sit amet consectetur. Accumsan.",
+    image: "https://images.unsplash.com/photo-1556761175-b3da8d37e024?w=800&q=80",
+    title: "Training Programs",
     description:
-      "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Ut elit tellus, luctus nec ullamcorper mattis, pulvinar dapibus leo.",
+      "Expert-led technical training programs for staff on system operation, maintenance, and safety protocols.",
+  },
+  {
+    image: "https://images.unsplash.com/photo-1552664730-d307ca884978?w=800&q=80",
+    title: "Spare Parts & Consumables",
+    description:
+      "Supply of genuine high-quality spare parts and consumables for all utility systems with guaranteed compatibility.",
+  },
+];
+
+// Product portfolio data
+const products = [
+  {
+    image: "https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=800&q=80",
+    title: "TOC Analyzers",
+    description:
+      "MINI TOC 1 & MINI TOC 2 - High-purity Total Organic Carbon analyzers engineered for precision monitoring and compliance in pharmaceutical and biotech applications.",
+    category: "Water Analysis",
+  },
+  {
+    image: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=800&q=80",
+    title: "POU Coolers",
+    description:
+      "IPACT & IPACT+ - Point-of-use coolers and clean water systems designed for optimal performance, reliability, and energy efficiency in critical environments.",
+    category: "Water Systems",
+  },
+  {
+    image: "https://images.unsplash.com/photo-1621905251918-48416bd8575a?w=800&q=80",
+    title: "Heat Exchangers",
+    description:
+      "MINI DTSU-BEND, MINI DTS & DTS Shell & Tube - Compact heat exchangers engineered for efficient thermal management in clean utility systems.",
+    category: "Thermal Management",
+  },
+  {
+    image: "https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=800&q=80",
+    title: "Particle Counters",
+    description:
+      "Airborne, Online & Liquid Particle Counters - Advanced monitoring solutions for real-time particle detection ensuring air and water quality compliance.",
+    category: "Monitoring Systems",
+  },
+  {
+    image: "https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?w=800&q=80",
+    title: "Filter Integrity Tester",
+    description:
+      "Comprehensive filter integrity testing solutions ensuring optimal filtration performance and regulatory compliance for critical applications.",
+    category: "Quality Assurance",
+  },
+  {
+    image: "https://images.unsplash.com/photo-1576086213369-97a306d3655b?w=800&q=80",
+    title: "Microbial Air Sampler",
+    description:
+      "Advanced microbial air sampling systems for environmental monitoring, contamination control, and quality assurance in sterile environments.",
+    category: "Environmental Monitoring",
   },
 ];
 
@@ -126,8 +168,8 @@ export default function Home() {
       {/* CTA Section */}
       <CTASection />
 
-      {/* Blog Section */}
-      <BlogSection />
+      {/* Product Portfolio Section */}
+      <ProductPortfolioSection />
     </div>
   );
 }
@@ -191,7 +233,7 @@ function AboutSection() {
           <div className="relative">
             <div className="relative h-[400px] sm:h-[500px] lg:h-[600px] rounded-lg overflow-hidden">
               <Image
-                src="https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=1200&q=80"
+                src="/home/more-about-main.jpg"
                 alt="City street with people"
                 fill
                 className="object-cover grayscale"
@@ -262,46 +304,52 @@ function AboutSection() {
               className="text-3xl sm:text-4xl lg:text-5xl font-bold leading-tight"
               style={{ color: colors.textPrimary }}
             >
-              Lorem ipsum dolor sit amet consectetur.
+              Exclusive Distributor for the Indian Market
             </h2>
             <p className="text-base sm:text-lg text-gray-600 leading-relaxed">
-              Lorem ipsum dolor sit amet, consectetur adipiscing elit. Ut elit
-              tellus, luctus nec ullamcorper mattis, pulvinar dapibus leo.
-              Lorem ipsum dolor sit amet, consectetur adipiscing elit.
+              Impact & Solutions specializes in water-system critical products and clean utility solutions, serving pharmaceutical, biotech, and industrial sectors with cutting-edge technology and comprehensive support services.
             </p>
             <p className="text-base sm:text-lg text-gray-600 leading-relaxed">
-              Ut elit tellus, luctus nec ullamcorper mattis, pulvinar dapibus
-              leo. Lorem ipsum dolor sit amet, consectetur adipiscing elit.
+              Established in 2018 and based in Navi Mumbai (Panvel), we have dedicated ourselves to delivering world-class clean-utility systems that ensure safety, efficiency, and sustainability for industries where purity cannot be compromised.
             </p>
 
             <ul className="space-y-3">
-              {[1, 2, 3, 4].map((item) => (
-                <li key={item} className="flex items-center gap-3">
+              {[
+                "Water System Critical Products",
+                "Engineering, Installation & Commissioning",
+                "Validation, AMC, Calibration & Spares",
+                "Complete Lifecycle Support Services"
+              ].map((item, index) => (
+                <li key={index} className="flex items-center gap-3">
                   <div
                     className="w-2 h-2 rounded-full"
                     style={{ backgroundColor: colors.primary }}
                   />
-                  <span className="text-base sm:text-lg text-gray-700">Lorem ipsum dolor</span>
+                  <span className="text-base sm:text-lg text-gray-700">{item}</span>
                 </li>
               ))}
             </ul>
 
             <div className="flex flex-col sm:flex-row gap-4 pt-4">
-              <Button
-                style={{ backgroundColor: colors.primary }}
-                className="hover:opacity-90"
-              >
-                Lorem
-              </Button>
-              <Button
-                variant="outline"
-                style={{
-                  borderColor: colors.primary,
-                  color: colors.primary,
-                }}
-              >
-                Lorem ipsum dolor sit
-              </Button>
+              <Link href="/about">
+                <Button
+                  style={{ backgroundColor: colors.primary }}
+                  className="hover:opacity-90"
+                >
+                  Learn More About Us
+                </Button>
+              </Link>
+              <Link href="/services">
+                <Button
+                  variant="outline"
+                  style={{
+                    borderColor: colors.primary,
+                    color: colors.primary,
+                  }}
+                >
+                  Explore Our Services
+                </Button>
+              </Link>
             </div>
           </div>
         </div>
@@ -332,15 +380,14 @@ function ServicesSection() {
             className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-4"
             style={{ color: colors.textPrimary }}
           >
-            Services
+            Our Services
           </h2>
           <p className="text-gray-600 max-w-2xl mx-auto">
-            Lorem ipsum dolor sit amet, consectetur adipiscing elit. Ut elit
-            tellus, luctus nec ullamcorper mattis, pulvinar dapibus leo.
+            Comprehensive solutions for clean utility systems. We provide end-to-end support from installation to maintenance, ensuring optimal performance and compliance for your critical operations.
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 lg:gap-10">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 lg:gap-10">
           {services.map((service, index) => (
             <div
               key={index}
@@ -375,7 +422,7 @@ function ServicesSection() {
                 {service.description}
               </p>
               <Link
-                href="#"
+                href="/services"
                 className="inline-flex items-center gap-2 font-semibold hover:gap-3 transition-all duration-200"
                 style={{ color: colors.primary }}
               >
@@ -413,28 +460,42 @@ function CTASection() {
 
       <div className="relative container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 text-left text-white z-10">
         <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-6">
-          Lorem ipsum dolor sit amet consectetur.
+          Ready to Transform Your Clean Utility Systems?
         </h2>
         <p className="text-lg sm:text-xl mb-8 max-w-2xl">
-          Lorem ipsum dolor sit, amet consectetur adipisicing elit. Quos eum ab sequi, veniam totam, provident fugiat excepturi laborum, tempore autem exercitationem voluptatem fuga omnis?
+          Partner with Impact & Solutions for reliable, technology-driven solutions that optimize OPEX and support long-term customer success. Let's discuss how we can help you achieve operational excellence.
         </p>
-        <Button
-          size="lg"
-          style={{ backgroundColor: colors.primary }}
-          className="hover:opacity-90"
-        >
-          Contact Us
-        </Button>
+        <div className="flex flex-col sm:flex-row gap-4">
+          <Link href="/about">
+            <Button
+              size="lg"
+              variant="secondary"
+              className="bg-white hover:bg-gray-100"
+              style={{ color: colors.textPrimary }}
+            >
+              Learn More About Us
+            </Button>
+          </Link>
+          <Link href="/about#contact">
+            <Button
+              size="lg"
+              style={{ backgroundColor: colors.primary }}
+              className="hover:opacity-90"
+            >
+              Contact Us
+            </Button>
+          </Link>
+        </div>
       </div>
     </section>
   );
 }
 
-function BlogSection() {
+function ProductPortfolioSection() {
   const [ref, isVisible] = useScrollAnimation();
 
   return (
-    <section className="py-12 sm:py-16 lg:py-20 bg-white">
+    <section className="py-12 sm:py-16 lg:py-20 bg-gray-50">
       <div className="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div
           ref={ref}
@@ -446,56 +507,77 @@ function BlogSection() {
             className="text-sm font-semibold uppercase tracking-wider block mb-2"
             style={{ color: colors.primary }}
           >
-            Lorem
+            Our Product Portfolio
           </span>
           <h2
             className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-4"
             style={{ color: colors.textPrimary }}
           >
-            Lorem
+            Engineered for Precision & Performance
           </h2>
-          <p className="text-base sm:text-lg text-gray-600 max-w-2xl mx-auto">
-            Lorem ipsum dolor sit amet, consectetur adipiscing elit. Ut elit
-            tellus, luctus nec ullamcorper mattis, pulvinar dapibus leo.
+          <p className="text-base sm:text-lg text-gray-600 max-w-3xl mx-auto">
+            At Impact & Solutions, each product is engineered with precision, innovation, and long-term reliability in mind. Our comprehensive solutions are designed to deliver maximum performance, ensure operational efficiency, and support customer success across diverse industries.
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 lg:gap-10">
-          {blogPosts.map((post, index) => (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 lg:gap-10">
+          {products.map((product, index) => (
             <Card
               key={index}
-              className="overflow-hidden shadow-lg hover:shadow-xl transition-shadow duration-300"
+              className="overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 bg-white"
             >
               <div className="relative h-48 sm:h-64">
                 <Image
-                  src={post.image}
-                  alt={post.title}
+                  src={product.image}
+                  alt={product.title}
                   fill
-                  className="object-cover"
+                  className="object-cover group-hover:scale-110 transition-transform duration-500"
                   loading="lazy"
                   sizes="(max-width: 768px) 100vw, 33vw"
                 />
+                <div className="absolute top-4 left-4">
+                  <span
+                    className="px-3 py-1 text-xs font-semibold rounded-full text-white"
+                    style={{ backgroundColor: colors.primary }}
+                  >
+                    {product.category}
+                  </span>
+                </div>
               </div>
               <CardContent className="p-6">
                 <h3
                   className="text-xl sm:text-2xl font-bold mb-3"
                   style={{ color: colors.textPrimary }}
                 >
-                  {post.title}
+                  {product.title}
                 </h3>
                 <p className="text-base sm:text-lg text-gray-600 mb-4 leading-relaxed">
-                  {post.description}
+                  {product.description}
                 </p>
-                <Button
-                  variant="link"
-                  className="p-0 h-auto font-semibold"
-                  style={{ color: colors.primary }}
-                >
-                  Read More
-                </Button>
+                <Link href="/products">
+                  <Button
+                    variant="link"
+                    className="p-0 h-auto font-semibold"
+                    style={{ color: colors.primary }}
+                  >
+                    Explore Product <ArrowRight className="h-4 w-4 inline-block ml-1" />
+                  </Button>
+                </Link>
               </CardContent>
             </Card>
           ))}
+        </div>
+
+        <div className="text-center mt-12">
+          <Link href="/products">
+            <Button
+              size="lg"
+              style={{ backgroundColor: colors.primary }}
+              className="hover:opacity-90"
+            >
+              View All Products
+            </Button>
+          </Link>
         </div>
       </div>
     </section>
