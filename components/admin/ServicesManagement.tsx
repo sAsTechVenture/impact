@@ -31,17 +31,24 @@ interface ServiceCategory {
 	name: string;
 	description?: string;
 	createdAt?: string;
+	slug?: string;
 }
 
 interface Service {
 	id: string;
 	name: string;
+	slug?: string;
 	description: string;
 	categoryId: string;
 	category?: ServiceCategory;
 	price?: number;
-	status: 'active' | 'inactive';
+	status?: 'active' | 'inactive';
+	isActive?: boolean;
 	imageUrl?: string;
+	bookUrl?: string;
+	serviceType?: string;
+	duration?: string;
+	currency?: string;
 	createdAt?: string;
 	updatedAt?: string;
 }
@@ -62,6 +69,9 @@ export const ServicesManagement: React.FC = () => {
 		categoryId: '',
 		price: 0,
 		status: 'active',
+		serviceType: 'standard',
+		currency: 'INR',
+		bookUrl: '',
 	});
 	const [categoryFormData, setCategoryFormData] = useState<Partial<ServiceCategory>>({
 		name: '',
@@ -75,17 +85,12 @@ export const ServicesManagement: React.FC = () => {
 	const fetchData = async () => {
 		try {
 			setLoading(true);
-			// TODO: Replace with actual API calls when backend is ready
-			// const [servicesRes, categoriesRes] = await Promise.all([
-			// 	api.services.list(1, 100, searchTerm, selectedCategory !== 'all' ? selectedCategory : undefined),
-			// 	api.serviceCategories.list(1, 100),
-			// ]);
-			// setServices(servicesRes.data || []);
-			// setCategories(categoriesRes.data || []);
-			
-			// Mock data for now
-			setServices([]);
-			setCategories([]);
+			const [servicesRes, categoriesRes] = await Promise.all([
+				api.services.list(1, 100, searchTerm, selectedCategory !== 'all' ? selectedCategory : undefined),
+				api.serviceCategories.list(1, 100),
+			]);
+			setServices(servicesRes.data || []);
+			setCategories(categoriesRes.data || []);
 		} catch (error) {
 			console.error('Error fetching data:', error);
 		} finally {
@@ -96,56 +101,74 @@ export const ServicesManagement: React.FC = () => {
 	const handleServiceSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
 		try {
+			// Prepare data for API - ensure slug is generated if not provided
+			const serviceData = {
+				...serviceFormData,
+				slug: editingService?.slug || generateSlug(serviceFormData.name || ''),
+			};
+			
 			if (editingService) {
-				// await api.services.update(editingService.id, serviceFormData);
-				console.log('Update service:', editingService.id, serviceFormData);
+				await api.services.update(editingService.id, serviceData);
 			} else {
-				// await api.services.create(serviceFormData);
-				console.log('Create service:', serviceFormData);
+				await api.services.create(serviceData);
 			}
 			resetServiceForm();
 			fetchData();
 		} catch (error) {
 			console.error('Error saving service:', error);
+			alert('Failed to save service. Please try again.');
 		}
+	};
+
+	// Generate slug from name
+	const generateSlug = (name: string): string => {
+		return name
+			.toLowerCase()
+			.trim()
+			.replace(/[^\w\s-]/g, '')
+			.replace(/[\s_-]+/g, '-')
+			.replace(/^-+|-+$/g, '');
 	};
 
 	const handleCategorySubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
 		try {
+			const categoryData = {
+				...categoryFormData,
+				slug: editingCategory?.slug || generateSlug(categoryFormData.name || ''),
+			};
 			if (editingCategory) {
-				// await api.serviceCategories.update(editingCategory.id, categoryFormData);
-				console.log('Update category:', editingCategory.id, categoryFormData);
+				await api.serviceCategories.update(editingCategory.id, categoryData);
 			} else {
-				// await api.serviceCategories.create(categoryFormData);
-				console.log('Create category:', categoryFormData);
+				await api.serviceCategories.create(categoryData);
 			}
 			resetCategoryForm();
 			fetchData();
 		} catch (error) {
 			console.error('Error saving category:', error);
+			alert('Failed to save category. Please try again.');
 		}
 	};
 
 	const handleServiceDelete = async (id: string) => {
 		if (!confirm('Are you sure you want to delete this service?')) return;
 		try {
-			// await api.services.delete(id);
-			console.log('Delete service:', id);
+			await api.services.delete(id);
 			fetchData();
 		} catch (error) {
 			console.error('Error deleting service:', error);
+			alert('Failed to delete service. Please try again.');
 		}
 	};
 
 	const handleCategoryDelete = async (id: string) => {
 		if (!confirm('Are you sure you want to delete this category? All services in this category will be affected.')) return;
 		try {
-			// await api.serviceCategories.delete(id);
-			console.log('Delete category:', id);
+			await api.serviceCategories.delete(id);
 			fetchData();
 		} catch (error) {
 			console.error('Error deleting category:', error);
+			alert('Failed to delete category. Please try again.');
 		}
 	};
 
@@ -153,10 +176,17 @@ export const ServicesManagement: React.FC = () => {
 		setEditingService(service);
 		setServiceFormData({
 			name: service.name,
+			slug: service.slug,
 			description: service.description,
 			categoryId: service.categoryId,
 			price: service.price || 0,
-			status: service.status,
+			status: service.isActive !== undefined 
+				? (service.isActive ? 'active' : 'inactive')
+				: service.status || 'active',
+			serviceType: service.serviceType || 'standard',
+			duration: service.duration,
+			currency: service.currency || 'INR',
+			bookUrl: service.bookUrl || '',
 		});
 		setIsServiceModalOpen(true);
 	};
@@ -177,6 +207,9 @@ export const ServicesManagement: React.FC = () => {
 			categoryId: '',
 			price: 0,
 			status: 'active',
+			serviceType: 'standard',
+			currency: 'INR',
+			bookUrl: '',
 		});
 		setEditingService(null);
 		setIsServiceModalOpen(false);
@@ -344,8 +377,8 @@ export const ServicesManagement: React.FC = () => {
 											>
 												{service.name}
 											</h3>
-											<Badge className={service.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}>
-												{service.status}
+											<Badge className={(service.isActive !== undefined ? service.isActive : service.status === 'active') ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}>
+												{service.isActive !== undefined ? (service.isActive ? 'active' : 'inactive') : (service.status || 'active')}
 											</Badge>
 											{service.category && (
 												<Badge variant="outline">
@@ -359,11 +392,25 @@ export const ServicesManagement: React.FC = () => {
 										>
 											{service.description}
 										</p>
-										{service.price !== undefined && (
-											<p className="text-lg font-semibold" style={{ color: colors.primary }}>
-												${service.price.toFixed(2)}
-											</p>
-										)}
+										<div className="flex items-center gap-4 mb-2">
+											{service.price !== undefined && service.price > 0 && (
+												<p className="text-lg font-semibold" style={{ color: colors.primary }}>
+													{service.currency || 'INR'} {service.price}
+												</p>
+											)}
+											{service.bookUrl && (
+												<p>Booking Url: 
+												<a
+													href={service.bookUrl}
+													target="_blank"
+													rel="noopener noreferrer"
+													className="text-sm ml-1 text-blue-600 hover:underline"
+												>
+													{service.bookUrl}
+												</a>
+												</p>
+											)}
+										</div>
 									</div>
 									<div className="flex gap-2 ml-4">
 										<Button
@@ -460,6 +507,18 @@ export const ServicesManagement: React.FC = () => {
 										value={serviceFormData.price}
 										onChange={(e) =>
 											setServiceFormData({ ...serviceFormData, price: parseFloat(e.target.value) || 0 })
+										}
+									/>
+								</div>
+								<div>
+									<Label htmlFor="serviceBookUrl">Booking URL</Label>
+									<Input
+										id="serviceBookUrl"
+										type="url"
+										placeholder="https://example.com/book"
+										value={serviceFormData.bookUrl || ''}
+										onChange={(e) =>
+											setServiceFormData({ ...serviceFormData, bookUrl: e.target.value })
 										}
 									/>
 								</div>

@@ -44,8 +44,9 @@ export const EventsManagement: React.FC = () => {
 	const [searchTerm, setSearchTerm] = useState('');
 	const [isModalOpen, setIsModalOpen] = useState(false);
 	const [editingEvent, setEditingEvent] = useState<Event | null>(null);
-	const [formData, setFormData] = useState<Partial<Event>>({
+	const [formData, setFormData] = useState<Partial<Event> & { slug?: string }>({
 		title: '',
+		slug: '',
 		description: '',
 		startDate: '',
 		endDate: '',
@@ -60,12 +61,8 @@ export const EventsManagement: React.FC = () => {
 	const fetchEvents = async () => {
 		try {
 			setLoading(true);
-			// TODO: Replace with actual API call when backend is ready
-			// const response = await api.events.list(1, 100, searchTerm);
-			// setEvents(response.data || []);
-			
-			// Mock data for now
-			setEvents([]);
+			const response = await api.events.list(1, 100, searchTerm);
+			setEvents(response.data || []);
 		} catch (error) {
 			console.error('Error fetching events:', error);
 		} finally {
@@ -73,31 +70,71 @@ export const EventsManagement: React.FC = () => {
 		}
 	};
 
+	// Auto-generate slug from title
+	const generateSlug = (title: string): string => {
+		return title
+			.toLowerCase()
+			.trim()
+			.replace(/[^\w\s-]/g, '')
+			.replace(/[\s_-]+/g, '-')
+			.replace(/^-+|-+$/g, '');
+	};
+
+	const handleTitleChange = (title: string) => {
+		setFormData({
+			...formData,
+			title,
+			slug: editingEvent ? formData.slug : generateSlug(title),
+		});
+	};
+
 	const handleSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
 		try {
+			// Ensure slug is generated if missing
+			const slug = formData.slug || generateSlug(formData.title || '');
+			
+			// Format dates properly - add time if only date is provided
+			const startDate = formData.startDate 
+				? formData.startDate.includes('T') 
+					? formData.startDate 
+					: `${formData.startDate}T00:00:00`
+				: '';
+			
+			const endDate = formData.endDate 
+				? formData.endDate.includes('T') 
+					? formData.endDate 
+					: `${formData.endDate}T23:59:59`
+				: null;
+
+			const submitData = {
+				...formData,
+				slug,
+				startDate,
+				endDate: endDate || undefined,
+			};
+
 			if (editingEvent) {
-				// await api.events.update(editingEvent.id, formData);
-				console.log('Update event:', editingEvent.id, formData);
+				await api.events.update(editingEvent.id, submitData);
 			} else {
-				// await api.events.create(formData);
-				console.log('Create event:', formData);
+				await api.events.create(submitData);
 			}
 			resetForm();
 			fetchEvents();
 		} catch (error) {
 			console.error('Error saving event:', error);
+			alert('Failed to save event. Please try again.');
 		}
 	};
 
 	const handleDelete = async (id: string) => {
 		if (!confirm('Are you sure you want to delete this event?')) return;
 		try {
-			// await api.events.delete(id);
-			console.log('Delete event:', id);
+			await api.events.delete(id);
 			fetchEvents();
 		} catch (error) {
 			console.error('Error deleting event:', error);
+			alert('Failed to delete event. Please try again.');
 		}
 	};
 
@@ -105,9 +142,10 @@ export const EventsManagement: React.FC = () => {
 		setEditingEvent(event);
 		setFormData({
 			title: event.title,
+			slug: (event as any).slug || '',
 			description: event.description,
-			startDate: event.startDate.split('T')[0],
-			endDate: event.endDate.split('T')[0],
+			startDate: event.startDate ? event.startDate.split('T')[0] : '',
+			endDate: event.endDate ? event.endDate.split('T')[0] : '',
 			location: event.location || '',
 			status: event.status,
 		});
@@ -117,6 +155,7 @@ export const EventsManagement: React.FC = () => {
 	const resetForm = () => {
 		setFormData({
 			title: '',
+			slug: '',
 			description: '',
 			startDate: '',
 			endDate: '',
@@ -304,10 +343,20 @@ export const EventsManagement: React.FC = () => {
 									<Input
 										id="title"
 										value={formData.title}
+										onChange={(e) => handleTitleChange(e.target.value)}
+										required
+									/>
+								</div>
+								<div>
+									<Label htmlFor="slug">Slug *</Label>
+									<Input
+										id="slug"
+										value={formData.slug}
 										onChange={(e) =>
-											setFormData({ ...formData, title: e.target.value })
+											setFormData({ ...formData, slug: e.target.value })
 										}
 										required
+										placeholder="auto-generated-from-title"
 									/>
 								</div>
 								<div>

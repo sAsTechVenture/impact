@@ -117,7 +117,6 @@ model Product {
   
   // Relations
   productImages   ProductImage[]
-  productDocuments ProductDocument[]
 
   @@index([categoryId])
   @@index([slug])
@@ -140,18 +139,6 @@ model ProductImage {
   @@map("product_images")
 }
 
-model ProductDocument {
-  id          String   @id @default(cuid())
-  productId   String
-  product     Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
-  title       String   @db.VarChar(255)
-  documentUrl String   @db.VarChar(500)
-  documentType String  @db.VarChar(50)
-  createdAt   DateTime @default(now())
-
-  @@index([productId])
-  @@map("product_documents")
-}
 
 // ============================================
 // SERVICES MODELS
@@ -191,6 +178,7 @@ model Service {
   
   // Media
   imageUrl        String?           @db.VarChar(500)
+  bookUrl         String?           @db.VarChar(500)
   
   // Features
   features        Json?             @db.Json
@@ -326,27 +314,10 @@ model JobApplication {
 // EVENTS MODELS
 // ============================================
 
-model EventCategory {
-  id          String    @id @default(cuid())
-  name        String    @db.VarChar(255)
-  slug        String    @unique @db.VarChar(255)
-  description String?   @db.Text
-  isActive    Boolean   @default(true)
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  events      Event[]
-
-  @@index([slug])
-  @@index([isActive])
-  @@map("event_categories")
-}
-
 model Event {
   id              String          @id @default(cuid())
   title           String          @db.VarChar(255)
   slug            String          @unique @db.VarChar(255)
-  categoryId      String
-  category        EventCategory   @relation(fields: [categoryId], references: [id], onDelete: Cascade)
   
   // Event Details
   eventType       String          @db.VarChar(50)
@@ -381,53 +352,10 @@ model Event {
   // Timestamps
   createdAt       DateTime        @default(now())
   updatedAt       DateTime        @updatedAt
-  
-  // Relations
-  eventAttendees  EventAttendee[]
-  eventDocuments  EventDocument[]
 
-  @@index([categoryId])
   @@index([slug])
   @@index([status])
   @@index([isPublished])
   @@index([startDate])
   @@map("events")
-}
-
-model EventAttendee {
-  id          String   @id @default(cuid())
-  eventId     String
-  event       Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  
-  // Attendee Information
-  name        String   @db.VarChar(255)
-  email       String   @db.VarChar(255)
-  phone       String?  @db.VarChar(20)
-  company     String?  @db.VarChar(255)
-  
-  // Registration Details
-  registrationDate DateTime @default(now())
-  status          String   @default("registered") @db.VarChar(50)
-  
-  // Timestamps
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-
-  @@unique([eventId, email])
-  @@index([eventId])
-  @@index([status])
-  @@map("event_attendees")
-}
-
-model EventDocument {
-  id          String   @id @default(cuid())
-  eventId     String
-  event       Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  title       String   @db.VarChar(255)
-  documentUrl String   @db.VarChar(500)
-  documentType String  @db.VarChar(50)
-  createdAt   DateTime @default(now())
-
-  @@index([eventId])
-  @@map("event_documents")
 }

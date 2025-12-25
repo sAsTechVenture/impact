@@ -7,6 +7,7 @@ async function request<T>(
 	const res = await fetch(
 		`${API_BASE}${endpoint}`,
 		{
+			credentials: 'include', // Include cookies for authentication
 			headers: {
 				...(options.body instanceof FormData
 					? {}
@@ -326,6 +327,83 @@ export const api = {
 			}),
 		delete: (id: string) =>
 			request<any>(`/job-applications/${id}`, {
+				method: 'DELETE',
+			}),
+	},
+	jobPostings: {
+		list: (page = 1, limit = 10, search?: string, departmentId?: string, isActive?: boolean) => {
+			const params = new URLSearchParams({
+				page: page.toString(),
+				limit: limit.toString(),
+			});
+			if (search) {
+				params.append('search', search);
+			}
+			if (departmentId) {
+				params.append('departmentId', departmentId);
+			}
+			if (isActive !== undefined) {
+				params.append('isActive', isActive.toString());
+			}
+			return request<{
+				data: any[];
+				total: number;
+				totalPages: number;
+				page: number;
+			}>(`/job-postings?${params.toString()}`, {
+				method: 'GET',
+			});
+		},
+		get: (id: string) =>
+			request<any>(`/job-postings/${id}`, {
+				method: 'GET',
+			}),
+		create: (data: any) =>
+			request<any>('/job-postings', {
+				method: 'POST',
+				body: JSON.stringify(data),
+			}),
+		update: (id: string, data: any) =>
+			request<any>(`/job-postings/${id}`, {
+				method: 'PUT',
+				body: JSON.stringify(data),
+			}),
+		delete: (id: string) =>
+			request<any>(`/job-postings/${id}`, {
+				method: 'DELETE',
+			}),
+	},
+	departments: {
+		list: (page = 1, limit = 100) => {
+			const params = new URLSearchParams({
+				page: page.toString(),
+				limit: limit.toString(),
+			});
+			return request<{
+				data: any[];
+				total: number;
+				totalPages: number;
+				page: number;
+			}>(`/departments?${params.toString()}`, {
+				method: 'GET',
+			});
+		},
+		get: (id: string) =>
+			request<any>(`/departments/${id}`, {
+				method: 'GET',
+			}),
+		create: (data: any) =>
+			request<any>('/departments', {
+				method: 'POST',
+				body: JSON.stringify(data),
+			}),
+		update: (id: string, data: any) =>
+			request<any>(`/departments/${id}`, {
+				method: 'PUT',
+				body: JSON.stringify(data),
+			}),
+		delete: (id: string) =>
+			request<any>(`/departments/${id}`, {
 				method: 'DELETE',
 			}),
 	},

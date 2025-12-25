@@ -12,7 +12,7 @@ export function middleware(req: NextRequest) {
 
   // If accessing login page but already logged in → redirect to dashboard
   if (pathname.startsWith("/admin/login") && token) {
-    return NextResponse.redirect(new URL("/super-admin/dashboard", req.url));
+    return NextResponse.redirect(new URL("/admin/dashboard", req.url));
   }
 
   // Otherwise allow
@@ -21,5 +21,5 @@ export function middleware(req: NextRequest) {
 
 // Protect these routes
 export const config = {
-  matcher: ["/super-admin/dashboard", "/super-admin/login"],
+  matcher: ["/admin/dashboard", "/admin/login"],
 };

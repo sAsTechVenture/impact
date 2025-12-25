@@ -29,6 +29,7 @@ import { api } from '@/utils/api';
 interface ProductCategory {
 	id: string;
 	name: string;
+	slug?: string;
 	description?: string;
 	createdAt?: string;
 }
@@ -36,12 +37,17 @@ interface ProductCategory {
 interface Product {
 	id: string;
 	name: string;
+	slug?: string;
 	description: string;
 	categoryId: string;
 	category?: ProductCategory;
 	price: number;
 	stock?: number;
-	status: 'active' | 'inactive' | 'out_of_stock';
+	sku?: string;
+	status?: 'active' | 'inactive' | 'out_of_stock';
+	isActive?: boolean;
+	isAvailable?: boolean;
+	currency?: string;
 	imageUrl?: string;
 	createdAt?: string;
 	updatedAt?: string;
@@ -64,6 +70,7 @@ export const ProductsManagement: React.FC = () => {
 		price: 0,
 		stock: 0,
 		status: 'active',
+		currency: 'INR',
 	});
 	const [categoryFormData, setCategoryFormData] = useState<Partial<ProductCategory>>({
 		name: '',
@@ -77,17 +84,12 @@ export const ProductsManagement: React.FC = () => {
 	const fetchData = async () => {
 		try {
 			setLoading(true);
-			// TODO: Replace with actual API calls when backend is ready
-			// const [productsRes, categoriesRes] = await Promise.all([
-			// 	api.products.list(1, 100, searchTerm, selectedCategory !== 'all' ? selectedCategory : undefined),
-			// 	api.productCategories.list(1, 100),
-			// ]);
-			// setProducts(productsRes.data || []);
-			// setCategories(categoriesRes.data || []);
-			
-			// Mock data for now
-			setProducts([]);
-			setCategories([]);
+			const [productsRes, categoriesRes] = await Promise.all([
+				api.products.list(1, 100, searchTerm, selectedCategory !== 'all' ? selectedCategory : undefined),
+				api.productCategories.list(1, 100),
+			]);
+			setProducts(productsRes.data || []);
+			setCategories(categoriesRes.data || []);
 		} catch (error) {
 			console.error('Error fetching data:', error);
 		} finally {
@@ -98,56 +100,74 @@ export const ProductsManagement: React.FC = () => {
 	const handleProductSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
 		try {
+			// Prepare data for API - ensure slug is generated if not provided
+			const productData = {
+				...productFormData,
+				slug: editingProduct?.slug || generateSlug(productFormData.name || ''),
+			};
+			
 			if (editingProduct) {
-				// await api.products.update(editingProduct.id, productFormData);
-				console.log('Update product:', editingProduct.id, productFormData);
+				await api.products.update(editingProduct.id, productData);
 			} else {
-				// await api.products.create(productFormData);
-				console.log('Create product:', productFormData);
+				await api.products.create(productData);
 			}
 			resetProductForm();
 			fetchData();
 		} catch (error) {
 			console.error('Error saving product:', error);
+			alert('Failed to save product. Please try again.');
 		}
+	};
+
+	// Generate slug from name
+	const generateSlug = (name: string): string => {
+		return name
+			.toLowerCase()
+			.trim()
+			.replace(/[^\w\s-]/g, '')
+			.replace(/[\s_-]+/g, '-')
+			.replace(/^-+|-+$/g, '');
 	};
 
 	const handleCategorySubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
 		try {
+			const categoryData = {
+				...categoryFormData,
+				slug: editingCategory?.slug || generateSlug(categoryFormData.name || ''),
+			};
 			if (editingCategory) {
-				// await api.productCategories.update(editingCategory.id, categoryFormData);
-				console.log('Update category:', editingCategory.id, categoryFormData);
+				await api.productCategories.update(editingCategory.id, categoryData);
 			} else {
-				// await api.productCategories.create(categoryFormData);
-				console.log('Create category:', categoryFormData);
+				await api.productCategories.create(categoryData);
 			}
 			resetCategoryForm();
 			fetchData();
 		} catch (error) {
 			console.error('Error saving category:', error);
+			alert('Failed to save category. Please try again.');
 		}
 	};
 
 	const handleProductDelete = async (id: string) => {
 		if (!confirm('Are you sure you want to delete this product?')) return;
 		try {
-			// await api.products.delete(id);
-			console.log('Delete product:', id);
+			await api.products.delete(id);
 			fetchData();
 		} catch (error) {
 			console.error('Error deleting product:', error);
+			alert('Failed to delete product. Please try again.');
 		}
 	};
 
 	const handleCategoryDelete = async (id: string) => {
 		if (!confirm('Are you sure you want to delete this category? All products in this category will be affected.')) return;
 		try {
-			// await api.productCategories.delete(id);
-			console.log('Delete category:', id);
+			await api.productCategories.delete(id);
 			fetchData();
 		} catch (error) {
 			console.error('Error deleting category:', error);
+			alert('Failed to delete category. Please try again.');
 		}
 	};
 
@@ -155,11 +175,16 @@ export const ProductsManagement: React.FC = () => {
 		setEditingProduct(product);
 		setProductFormData({
 			name: product.name,
+			slug: product.slug,
 			description: product.description,
 			categoryId: product.categoryId,
 			price: product.price,
 			stock: product.stock || 0,
-			status: product.status,
+			sku: product.sku,
+			status: product.isActive !== undefined 
+				? (product.isActive ? 'active' : 'inactive')
+				: product.status || 'active',
+			currency: product.currency || 'INR',
 		});
 		setIsProductModalOpen(true);
 	};
@@ -181,6 +206,7 @@ export const ProductsManagement: React.FC = () => {
 			price: 0,
 			stock: 0,
 			status: 'active',
+			currency: 'INR',
 		});
 		setEditingProduct(null);
 		setIsProductModalOpen(false);
@@ -361,8 +387,15 @@ export const ProductsManagement: React.FC = () => {
 											>
 												{product.name}
 											</h3>
-											<Badge className={getStatusColor(product.status)}>
-												{product.status.replace('_', ' ')}
+											<Badge className={getStatusColor(
+												product.isActive !== undefined 
+													? (product.isActive ? 'active' : 'inactive')
+													: (product.status || 'active')
+											)}>
+												{(product.isActive !== undefined 
+													? (product.isActive ? 'active' : 'inactive')
+													: (product.status || 'active')
+												).replace('_', ' ')}
 											</Badge>
 											{product.category && (
 												<Badge variant="outline">
@@ -376,14 +409,24 @@ export const ProductsManagement: React.FC = () => {
 										>
 											{product.description}
 										</p>
-										<div className="flex gap-4 text-sm">
-											<p className="text-lg font-semibold" style={{ color: colors.primary }}>
-												${product.price.toFixed(2)}
-											</p>
+										<div className="flex flex-wrap gap-4 text-sm items-center">
+											{product.price !== undefined && product.price > 0 && (
+												<p className="text-lg font-semibold" style={{ color: colors.primary }}>
+													{product.currency || 'INR'} {product.price}
+												</p>
+											)}
+											{product.sku && (
+												<p style={{ color: colors.gray }}>
+													SKU: <span style={{ color: colors.textPrimary }}>{product.sku}</span>
+												</p>
+											)}
 											{product.stock !== undefined && (
 												<p style={{ color: colors.gray }}>
 													Stock: <span style={{ color: colors.textPrimary }}>{product.stock}</span>
 												</p>
+											)}
+											{product.isAvailable === false && (
+												<Badge className="bg-red-100 text-red-800">Not Available</Badge>
 											)}
 										</div>
 									</div>
@@ -472,7 +515,18 @@ export const ProductsManagement: React.FC = () => {
 										))}
 									</select>
 								</div>
-								<div className="grid grid-cols-2 gap-4">
+								<div>
+									<Label htmlFor="productSku">SKU (Optional)</Label>
+									<Input
+										id="productSku"
+										value={productFormData.sku || ''}
+										onChange={(e) =>
+											setProductFormData({ ...productFormData, sku: e.target.value })
+										}
+										placeholder="Product SKU"
+									/>
+								</div>
+								<div className="grid grid-cols-3 gap-4">
 									<div>
 										<Label htmlFor="productPrice">Price *</Label>
 										<Input
@@ -486,6 +540,21 @@ export const ProductsManagement: React.FC = () => {
 											}
 											required
 										/>
+									</div>
+									<div>
+										<Label htmlFor="productCurrency">Currency</Label>
+										<select
+											id="productCurrency"
+											value={productFormData.currency || 'INR'}
+											onChange={(e) =>
+												setProductFormData({ ...productFormData, currency: e.target.value })
+											}
+											className="w-full h-9 rounded-md border border-input bg-transparent px-3 py-1 text-sm"
+										>
+											<option value="INR">INR</option>
+											<option value="USD">USD</option>
+											<option value="EUR">EUR</option>
+										</select>
 									</div>
 									<div>
 										<Label htmlFor="productStock">Stock</Label>

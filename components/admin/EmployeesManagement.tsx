@@ -30,16 +30,22 @@ import { api } from '@/utils/api';
 
 interface Employee {
 	id: string;
-	name: string;
-	email: string;
-	position: string;
+	firstName: string;
+	lastName: string;
+	name?: string; // Computed: firstName + lastName
+	email?: string;
+	designation: string;
+	position?: string; // Alias for designation
 	department?: string;
 	phone?: string;
 	managerId?: string;
 	manager?: Employee;
-	subordinates?: Employee[];
-	status: 'active' | 'inactive';
-	hireDate?: string;
+	reports?: Employee[];
+	subordinates?: Employee[]; // Alias for reports
+	isActive: boolean;
+	status?: 'active' | 'inactive'; // Computed from isActive
+	joinedAt?: string;
+	hireDate?: string; // Alias for joinedAt
 	createdAt?: string;
 	updatedAt?: string;
 }
@@ -69,15 +75,18 @@ export const EmployeesManagement: React.FC = () => {
 	const fetchEmployees = async () => {
 		try {
 			setLoading(true);
-			// TODO: Replace with actual API call when backend is ready
-			// const response = await api.employees.list(1, 100, searchTerm);
-			// const employeesList = response.data || [];
+			const response = await api.employees.list(1, 100, searchTerm);
+			const employeesList = (response.data || []).map((emp: any) => ({
+				...emp,
+				name: `${emp.firstName} ${emp.lastName}`,
+				position: emp.designation,
+				status: emp.isActive ? 'active' : 'inactive',
+				hireDate: emp.joinedAt,
+				subordinates: emp.reports || [],
+			}));
 			// Build tree structure
-			// const tree = buildEmployeeTree(employeesList);
-			// setEmployees(tree);
-			
-			// Mock data for now
-			setEmployees([]);
+			const tree = buildEmployeeTree(employeesList);
+			setEmployees(tree);
 		} catch (error) {
 			console.error('Error fetching employees:', error);
 		} finally {
@@ -114,42 +123,57 @@ export const EmployeesManagement: React.FC = () => {
 	const handleSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
 		try {
+			// Map form data to API structure
+			const [firstName, ...lastNameParts] = (formData.name || '').split(' ');
+			const lastName = lastNameParts.join(' ') || '';
+			
+			const apiData: any = {
+				firstName,
+				lastName,
+				email: formData.email,
+				phone: formData.phone,
+				designation: formData.position || formData.position,
+				department: formData.department,
+				managerId: formData.managerId || undefined,
+				isActive: formData.status === 'active',
+				joinedAt: formData.hireDate || undefined,
+			};
+
 			if (editingEmployee) {
-				// await api.employees.update(editingEmployee.id, formData);
-				console.log('Update employee:', editingEmployee.id, formData);
+				await api.employees.update(editingEmployee.id, apiData);
 			} else {
-				// await api.employees.create(formData);
-				console.log('Create employee:', formData);
+				await api.employees.create(apiData);
 			}
 			resetForm();
 			fetchEmployees();
 		} catch (error) {
 			console.error('Error saving employee:', error);
+			alert('Failed to save employee. Please try again.');
 		}
 	};
 
 	const handleDelete = async (id: string) => {
 		if (!confirm('Are you sure you want to delete this employee?')) return;
 		try {
-			// await api.employees.delete(id);
-			console.log('Delete employee:', id);
+			await api.employees.delete(id);
 			fetchEmployees();
 		} catch (error) {
 			console.error('Error deleting employee:', error);
+			alert('Failed to delete employee. Please try again.');
 		}
 	};
 
 	const handleEdit = (employee: Employee) => {
 		setEditingEmployee(employee);
 		setFormData({
-			name: employee.name,
-			email: employee.email,
-			position: employee.position,
+			name: employee.name || `${employee.firstName} ${employee.lastName}`,
+			email: employee.email || '',
+			position: employee.position || employee.designation || '',
 			department: employee.department || '',
 			phone: employee.phone || '',
 			managerId: employee.managerId || '',
-			status: employee.status,
-			hireDate: employee.hireDate ? employee.hireDate.split('T')[0] : '',
+			status: employee.status || (employee.isActive ? 'active' : 'inactive'),
+			hireDate: employee.hireDate ? employee.hireDate.split('T')[0] : (employee.joinedAt ? employee.joinedAt.split('T')[0] : ''),
 		});
 		setIsModalOpen(true);
 	};
@@ -194,9 +218,9 @@ export const EmployeesManagement: React.FC = () => {
 	};
 
 	const filteredEmployees = getAllEmployees(employees).filter(emp =>
-		emp.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-		emp.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-		emp.position.toLowerCase().includes(searchTerm.toLowerCase()) ||
+		emp.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+		emp.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+		emp.position?.toLowerCase().includes(searchTerm.toLowerCase()) ||
 		emp.department?.toLowerCase().includes(searchTerm.toLowerCase())
 	);
 
