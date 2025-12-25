@@ -1,0 +1,554 @@
+'use client';
+import React, { useState, useEffect } from 'react';
+import {
+	Card,
+	CardContent,
+	CardHeader,
+	CardTitle,
+	CardDescription,
+} from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
+import { colors } from '@/config/theme';
+import {
+	Users,
+	Plus,
+	Edit,
+	Trash2,
+	Search,
+	X,
+	Save,
+	ChevronRight,
+	ChevronDown,
+	User,
+} from 'lucide-react';
+import { api } from '@/utils/api';
+
+interface Employee {
+	id: string;
+	name: string;
+	email: string;
+	position: string;
+	department?: string;
+	phone?: string;
+	managerId?: string;
+	manager?: Employee;
+	subordinates?: Employee[];
+	status: 'active' | 'inactive';
+	hireDate?: string;
+	createdAt?: string;
+	updatedAt?: string;
+}
+
+export const EmployeesManagement: React.FC = () => {
+	const [employees, setEmployees] = useState<Employee[]>([]);
+	const [loading, setLoading] = useState(true);
+	const [searchTerm, setSearchTerm] = useState('');
+	const [isModalOpen, setIsModalOpen] = useState(false);
+	const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
+	const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set());
+	const [formData, setFormData] = useState<Partial<Employee>>({
+		name: '',
+		email: '',
+		position: '',
+		department: '',
+		phone: '',
+		managerId: '',
+		status: 'active',
+		hireDate: '',
+	});
+
+	useEffect(() => {
+		fetchEmployees();
+	}, []);
+
+	const fetchEmployees = async () => {
+		try {
+			setLoading(true);
+			// TODO: Replace with actual API call when backend is ready
+			// const response = await api.employees.list(1, 100, searchTerm);
+			// const employeesList = response.data || [];
+			// Build tree structure
+			// const tree = buildEmployeeTree(employeesList);
+			// setEmployees(tree);
+			
+			// Mock data for now
+			setEmployees([]);
+		} catch (error) {
+			console.error('Error fetching employees:', error);
+		} finally {
+			setLoading(false);
+		}
+	};
+
+	const buildEmployeeTree = (employeesList: Employee[]): Employee[] => {
+		const employeeMap = new Map<string, Employee>();
+		const rootEmployees: Employee[] = [];
+
+		// First pass: create map of all employees
+		employeesList.forEach(emp => {
+			employeeMap.set(emp.id, { ...emp, subordinates: [] });
+		});
+
+		// Second pass: build tree structure
+		employeesList.forEach(emp => {
+			const employee = employeeMap.get(emp.id)!;
+			if (emp.managerId && employeeMap.has(emp.managerId)) {
+				const manager = employeeMap.get(emp.managerId)!;
+				if (!manager.subordinates) {
+					manager.subordinates = [];
+				}
+				manager.subordinates.push(employee);
+			} else {
+				rootEmployees.push(employee);
+			}
+		});
+
+		return rootEmployees;
+	};
+
+	const handleSubmit = async (e: React.FormEvent) => {
+		e.preventDefault();
+		try {
+			if (editingEmployee) {
+				// await api.employees.update(editingEmployee.id, formData);
+				console.log('Update employee:', editingEmployee.id, formData);
+			} else {
+				// await api.employees.create(formData);
+				console.log('Create employee:', formData);
+			}
+			resetForm();
+			fetchEmployees();
+		} catch (error) {
+			console.error('Error saving employee:', error);
+		}
+	};
+
+	const handleDelete = async (id: string) => {
+		if (!confirm('Are you sure you want to delete this employee?')) return;
+		try {
+			// await api.employees.delete(id);
+			console.log('Delete employee:', id);
+			fetchEmployees();
+		} catch (error) {
+			console.error('Error deleting employee:', error);
+		}
+	};
+
+	const handleEdit = (employee: Employee) => {
+		setEditingEmployee(employee);
+		setFormData({
+			name: employee.name,
+			email: employee.email,
+			position: employee.position,
+			department: employee.department || '',
+			phone: employee.phone || '',
+			managerId: employee.managerId || '',
+			status: employee.status,
+			hireDate: employee.hireDate ? employee.hireDate.split('T')[0] : '',
+		});
+		setIsModalOpen(true);
+	};
+
+	const resetForm = () => {
+		setFormData({
+			name: '',
+			email: '',
+			position: '',
+			department: '',
+			phone: '',
+			managerId: '',
+			status: 'active',
+			hireDate: '',
+		});
+		setEditingEmployee(null);
+		setIsModalOpen(false);
+	};
+
+	const toggleNode = (id: string) => {
+		const newExpanded = new Set(expandedNodes);
+		if (newExpanded.has(id)) {
+			newExpanded.delete(id);
+		} else {
+			newExpanded.add(id);
+		}
+		setExpandedNodes(newExpanded);
+	};
+
+	const getAllEmployees = (employeesList: Employee[]): Employee[] => {
+		const result: Employee[] = [];
+		const traverse = (emps: Employee[]) => {
+			emps.forEach(emp => {
+				result.push(emp);
+				if (emp.subordinates && emp.subordinates.length > 0) {
+					traverse(emp.subordinates);
+				}
+			});
+		};
+		traverse(employeesList);
+		return result;
+	};
+
+	const filteredEmployees = getAllEmployees(employees).filter(emp =>
+		emp.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+		emp.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+		emp.position.toLowerCase().includes(searchTerm.toLowerCase()) ||
+		emp.department?.toLowerCase().includes(searchTerm.toLowerCase())
+	);
+
+	const renderEmployeeNode = (employee: Employee, level: number = 0): React.ReactNode => {
+		const hasChildren = employee.subordinates && employee.subordinates.length > 0;
+		const isExpanded = expandedNodes.has(employee.id);
+		const indent = level * 24;
+
+		return (
+			<div key={employee.id}>
+				<div
+					className="flex items-center gap-2 p-3 rounded-lg hover:bg-gray-50 transition-colors"
+					style={{ paddingLeft: `${indent + 12}px` }}
+				>
+					{hasChildren ? (
+						<button
+							onClick={() => toggleNode(employee.id)}
+							className="p-1 hover:bg-gray-200 rounded"
+						>
+							{isExpanded ? (
+								<ChevronDown className="h-4 w-4" />
+							) : (
+								<ChevronRight className="h-4 w-4" />
+							)}
+						</button>
+					) : (
+						<div className="w-6" />
+					)}
+					<div className="flex-1 flex items-center justify-between">
+						<div className="flex items-center gap-3 flex-1">
+							<User className="h-5 w-5" style={{ color: colors.primary }} />
+							<div className="flex-1">
+								<div className="flex items-center gap-2">
+									<h3
+										className="font-semibold"
+										style={{ color: colors.textPrimary }}
+									>
+										{employee.name}
+									</h3>
+									<Badge className={employee.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}>
+										{employee.status}
+									</Badge>
+								</div>
+								<div className="text-sm" style={{ color: colors.gray }}>
+									{employee.position}
+									{employee.department && ` • ${employee.department}`}
+								</div>
+								<div className="text-xs" style={{ color: colors.gray }}>
+									{employee.email}
+									{employee.phone && ` • ${employee.phone}`}
+								</div>
+							</div>
+						</div>
+						<div className="flex gap-2">
+							<Button
+								variant="outline"
+								size="sm"
+								onClick={() => handleEdit(employee)}
+							>
+								<Edit className="h-4 w-4" />
+							</Button>
+							<Button
+								variant="destructive"
+								size="sm"
+								onClick={() => handleDelete(employee.id)}
+							>
+								<Trash2 className="h-4 w-4" />
+							</Button>
+						</div>
+					</div>
+				</div>
+				{hasChildren && isExpanded && (
+					<div>
+						{employee.subordinates!.map(sub => renderEmployeeNode(sub, level + 1))}
+					</div>
+				)}
+			</div>
+		);
+	};
+
+	return (
+		<div className="space-y-6">
+			<div className="flex items-center justify-between">
+				<div>
+					<h1
+						className="text-3xl font-bold"
+						style={{ color: colors.textPrimary }}
+					>
+						Employees Management
+					</h1>
+					<p style={{ color: colors.gray }}>
+						Manage employees and organizational structure
+					</p>
+				</div>
+				<Button
+					onClick={() => {
+						resetForm();
+						setIsModalOpen(true);
+					}}
+					style={{ backgroundColor: colors.primary }}
+				>
+					<Plus className="mr-2 h-4 w-4" />
+					Add Employee
+				</Button>
+			</div>
+
+			{/* Search */}
+			<Card>
+				<CardContent className="pt-6">
+					<div className="relative">
+						<Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+						<Input
+							placeholder="Search employees by name, email, position, or department..."
+							value={searchTerm}
+							onChange={(e) => setSearchTerm(e.target.value)}
+							className="pl-10"
+						/>
+					</div>
+				</CardContent>
+			</Card>
+
+			{/* Employee Tree */}
+			<Card>
+				<CardHeader>
+					<CardTitle>Organizational Structure</CardTitle>
+					<CardDescription>
+						View and manage the employee hierarchy
+					</CardDescription>
+				</CardHeader>
+				<CardContent>
+					{loading ? (
+						<div className="space-y-4">
+							{[1, 2, 3, 4].map((i) => (
+								<Skeleton key={i} className="h-20 w-full" />
+							))}
+						</div>
+					) : employees.length === 0 ? (
+						<div className="text-center py-12">
+							<Users className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+							<p style={{ color: colors.gray }}>
+								No employees found. Create your first employee!
+							</p>
+						</div>
+					) : searchTerm ? (
+						<div className="space-y-2">
+							{filteredEmployees.map((employee) => (
+								<div
+									key={employee.id}
+									className="flex items-center justify-between p-3 rounded-lg hover:bg-gray-50"
+								>
+									<div className="flex items-center gap-3 flex-1">
+										<User className="h-5 w-5" style={{ color: colors.primary }} />
+										<div>
+											<div className="flex items-center gap-2">
+												<h3
+													className="font-semibold"
+													style={{ color: colors.textPrimary }}
+												>
+													{employee.name}
+												</h3>
+												<Badge className={employee.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}>
+													{employee.status}
+												</Badge>
+											</div>
+											<div className="text-sm" style={{ color: colors.gray }}>
+												{employee.position}
+												{employee.department && ` • ${employee.department}`}
+											</div>
+											<div className="text-xs" style={{ color: colors.gray }}>
+												{employee.email}
+											</div>
+										</div>
+									</div>
+									<div className="flex gap-2">
+										<Button
+											variant="outline"
+											size="sm"
+											onClick={() => handleEdit(employee)}
+										>
+											<Edit className="h-4 w-4" />
+										</Button>
+										<Button
+											variant="destructive"
+											size="sm"
+											onClick={() => handleDelete(employee.id)}
+										>
+											<Trash2 className="h-4 w-4" />
+										</Button>
+									</div>
+								</div>
+							))}
+						</div>
+					) : (
+						<div className="space-y-1">
+							{employees.map(employee => renderEmployeeNode(employee))}
+						</div>
+					)}
+				</CardContent>
+			</Card>
+
+			{/* Modal */}
+			{isModalOpen && (
+				<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+					<Card className="w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+						<CardHeader>
+							<div className="flex items-center justify-between">
+								<CardTitle>
+									{editingEmployee ? 'Edit Employee' : 'Create New Employee'}
+								</CardTitle>
+								<Button
+									variant="ghost"
+									size="icon"
+									onClick={resetForm}
+								>
+									<X className="h-4 w-4" />
+								</Button>
+							</div>
+						</CardHeader>
+						<CardContent>
+							<form onSubmit={handleSubmit} className="space-y-4">
+								<div className="grid grid-cols-2 gap-4">
+									<div>
+										<Label htmlFor="name">Name *</Label>
+										<Input
+											id="name"
+											value={formData.name}
+											onChange={(e) =>
+												setFormData({ ...formData, name: e.target.value })
+											}
+											required
+										/>
+									</div>
+									<div>
+										<Label htmlFor="email">Email *</Label>
+										<Input
+											id="email"
+											type="email"
+											value={formData.email}
+											onChange={(e) =>
+												setFormData({ ...formData, email: e.target.value })
+											}
+											required
+										/>
+									</div>
+								</div>
+								<div className="grid grid-cols-2 gap-4">
+									<div>
+										<Label htmlFor="position">Position *</Label>
+										<Input
+											id="position"
+											value={formData.position}
+											onChange={(e) =>
+												setFormData({ ...formData, position: e.target.value })
+											}
+											required
+										/>
+									</div>
+									<div>
+										<Label htmlFor="department">Department</Label>
+										<Input
+											id="department"
+											value={formData.department}
+											onChange={(e) =>
+												setFormData({ ...formData, department: e.target.value })
+											}
+										/>
+									</div>
+								</div>
+								<div className="grid grid-cols-2 gap-4">
+									<div>
+										<Label htmlFor="phone">Phone</Label>
+										<Input
+											id="phone"
+											type="tel"
+											value={formData.phone}
+											onChange={(e) =>
+												setFormData({ ...formData, phone: e.target.value })
+											}
+										/>
+									</div>
+									<div>
+										<Label htmlFor="hireDate">Hire Date</Label>
+										<Input
+											id="hireDate"
+											type="date"
+											value={formData.hireDate}
+											onChange={(e) =>
+												setFormData({ ...formData, hireDate: e.target.value })
+											}
+										/>
+									</div>
+								</div>
+								<div>
+									<Label htmlFor="managerId">Manager</Label>
+									<select
+										id="managerId"
+										value={formData.managerId}
+										onChange={(e) =>
+											setFormData({ ...formData, managerId: e.target.value || undefined })
+										}
+										className="w-full h-9 rounded-md border border-input bg-transparent px-3 py-1 text-sm"
+									>
+										<option value="">No Manager (Top Level)</option>
+										{getAllEmployees(employees)
+											.filter(emp => !editingEmployee || emp.id !== editingEmployee.id)
+											.map((emp) => (
+												<option key={emp.id} value={emp.id}>
+													{emp.name} - {emp.position}
+												</option>
+											))}
+									</select>
+								</div>
+								<div>
+									<Label htmlFor="status">Status *</Label>
+									<select
+										id="status"
+										value={formData.status}
+										onChange={(e) =>
+											setFormData({
+												...formData,
+												status: e.target.value as Employee['status'],
+											})
+										}
+										className="w-full h-9 rounded-md border border-input bg-transparent px-3 py-1 text-sm"
+										required
+									>
+										<option value="active">Active</option>
+										<option value="inactive">Inactive</option>
+									</select>
+								</div>
+								<div className="flex justify-end gap-2 pt-4">
+									<Button
+										type="button"
+										variant="outline"
+										onClick={resetForm}
+									>
+										Cancel
+									</Button>
+									<Button
+										type="submit"
+										style={{ backgroundColor: colors.primary }}
+									>
+										<Save className="mr-2 h-4 w-4" />
+										{editingEmployee ? 'Update' : 'Create'}
+									</Button>
+								</div>
+							</form>
+						</CardContent>
+					</Card>
+				</div>
+			)}
+		</div>
+	);
+};
+

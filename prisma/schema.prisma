@@ -1,0 +1,433 @@
+// Prisma Schema for Impact & Solutions
+// Supports MySQL locally and AWS RDS via environment variables
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+}
+
+// ============================================
+// AUTHENTICATION & USERS
+// ============================================
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique @db.VarChar(255)
+  password  String   @db.VarChar(255) // Hashed password
+  name      String   @db.VarChar(255)
+  role      String   @default("admin") @db.VarChar(50) // admin, super_admin
+  isActive  Boolean  @default(true)
+  lastLogin DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([email])
+  @@index([isActive])
+  @@map("users")
+}
+
+// ============================================
+// EMPLOYEES (For Career Page Employee Tree)
+// ============================================
+
+model Employee {
+  id          String     @id @default(cuid())
+  firstName   String     @db.VarChar(100)
+  lastName    String     @db.VarChar(100)
+  email       String?    @unique @db.VarChar(255)
+  phone       String?    @db.VarChar(20)
+  designation String    @db.VarChar(255)
+  department  String?    @db.VarChar(255)
+  bio         String?    @db.Text
+  imageUrl    String?    @db.VarChar(500)
+  linkedinUrl String?    @db.VarChar(500)
+  
+  // Hierarchical structure for employee tree
+  managerId   String?
+  manager     Employee?  @relation("EmployeeHierarchy", fields: [managerId], references: [id], onDelete: SetNull)
+  reports     Employee[] @relation("EmployeeHierarchy")
+  
+  // Status
+  isActive    Boolean    @default(true)
+  sortOrder   Int        @default(0)
+  
+  // Timestamps
+  joinedAt    DateTime?  // Date when employee joined
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  @@index([managerId])
+  @@index([department])
+  @@index([isActive])
+  @@map("employees")
+}
+
+// ============================================
+// PRODUCTS MODELS
+// ============================================
+
+model ProductCategory {
+  id          String    @id @default(cuid())
+  name        String    @db.VarChar(255)
+  slug        String    @unique @db.VarChar(255)
+  description String?   @db.Text
+  imageUrl    String?   @db.VarChar(500)
+  isActive    Boolean   @default(true)
+  sortOrder   Int       @default(0)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  products    Product[]
+
+  @@index([slug])
+  @@index([isActive])
+  @@map("product_categories")
+}
+
+model Product {
+  id              String            @id @default(cuid())
+  name            String            @db.VarChar(255)
+  slug            String            @unique @db.VarChar(255)
+  description     String?           @db.Text
+  sku             String?           @unique @db.VarChar(100)
+  categoryId      String
+  category        ProductCategory   @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  
+  // Pricing
+  price           Decimal?          @db.Decimal(10, 2)
+  currency        String            @default("INR") @db.VarChar(3)
+  isAvailable     Boolean           @default(true)
+  
+  // Media
+  imageUrl        String?           @db.VarChar(500)
+  
+  // Specifications
+  specifications  Json?             @db.Json
+  
+  // Status
+  isActive        Boolean           @default(true)
+  isFeatured      Boolean           @default(false)
+  sortOrder       Int               @default(0)
+  
+  // Timestamps
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  
+  // Relations
+  productImages   ProductImage[]
+  productDocuments ProductDocument[]
+
+  @@index([categoryId])
+  @@index([slug])
+  @@index([isActive])
+  @@index([isFeatured])
+  @@map("products")
+}
+
+model ProductImage {
+  id          String   @id @default(cuid())
+  productId   String
+  product     Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  imageUrl    String   @db.VarChar(500)
+  altText     String?  @db.VarChar(255)
+  isPrimary   Boolean  @default(false)
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+
+  @@index([productId])
+  @@map("product_images")
+}
+
+model ProductDocument {
+  id          String   @id @default(cuid())
+  productId   String
+  product     Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  title       String   @db.VarChar(255)
+  documentUrl String   @db.VarChar(500)
+  documentType String  @db.VarChar(50)
+  createdAt   DateTime @default(now())
+
+  @@index([productId])
+  @@map("product_documents")
+}
+
+// ============================================
+// SERVICES MODELS
+// ============================================
+
+model ServiceCategory {
+  id          String    @id @default(cuid())
+  name        String    @db.VarChar(255)
+  slug        String    @unique @db.VarChar(255)
+  description String?   @db.Text
+  isActive    Boolean   @default(true)
+  sortOrder   Int       @default(0)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  services    Service[]
+
+  @@index([slug])
+  @@index([isActive])
+  @@map("service_categories")
+}
+
+model Service {
+  id              String            @id @default(cuid())
+  name            String            @db.VarChar(255)
+  slug            String            @unique @db.VarChar(255)
+  description     String?           @db.Text
+  categoryId      String
+  category        ServiceCategory   @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  
+  // Service Details
+  serviceType     String            @db.VarChar(50)
+  duration        String?           @db.VarChar(100)
+  
+  // Pricing
+  price           Decimal?          @db.Decimal(10, 2)
+  currency        String            @default("INR") @db.VarChar(3)
+  
+  // Media
+  imageUrl        String?           @db.VarChar(500)
+  
+  // Features
+  features        Json?             @db.Json
+  
+  // Status
+  isActive        Boolean           @default(true)
+  isFeatured      Boolean           @default(false)
+  sortOrder       Int               @default(0)
+  
+  // Timestamps
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  
+  // Relations
+  serviceInquiries ServiceInquiry[]
+
+  @@index([categoryId])
+  @@index([slug])
+  @@index([isActive])
+  @@index([isFeatured])
+  @@map("services")
+}
+
+model ServiceInquiry {
+  id          String   @id @default(cuid())
+  serviceId   String?
+  service     Service? @relation(fields: [serviceId], references: [id], onDelete: SetNull)
+  name        String   @db.VarChar(255)
+  email       String   @db.VarChar(255)
+  phone       String?  @db.VarChar(20)
+  company     String?  @db.VarChar(255)
+  message     String?  @db.Text
+  status      String   @default("pending") @db.VarChar(50)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([serviceId])
+  @@index([status])
+  @@map("service_inquiries")
+}
+
+// ============================================
+// CAREER MODELS
+// ============================================
+
+model Department {
+  id          String    @id @default(cuid())
+  name        String    @unique @db.VarChar(255)
+  description String?   @db.Text
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  jobPostings JobPosting[]
+
+  @@index([isActive])
+  @@map("departments")
+}
+
+model JobPosting {
+  id              String        @id @default(cuid())
+  title           String        @db.VarChar(255)
+  slug            String        @unique @db.VarChar(255)
+  departmentId    String
+  department      Department    @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+  
+  // Job Details
+  jobType         String        @db.VarChar(50)
+  location        String        @db.VarChar(255)
+  isRemote        Boolean       @default(false)
+  
+  // Description
+  description     String?       @db.Text
+  requirements    String?       @db.Text
+  
+  // Compensation
+  salaryMin       Decimal?      @db.Decimal(10, 2)
+  salaryMax       Decimal?      @db.Decimal(10, 2)
+  currency        String        @default("INR") @db.VarChar(3)
+  
+  // Application
+  applicationDeadline DateTime?
+  applicationEmail    String?   @db.VarChar(255)
+  
+  // Status
+  isActive        Boolean       @default(true)
+  isFeatured      Boolean       @default(false)
+  
+  // Timestamps
+  postedAt        DateTime      @default(now())
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  
+  // Relations
+  applications    JobApplication[]
+
+  @@index([departmentId])
+  @@index([slug])
+  @@index([isActive])
+  @@index([isFeatured])
+  @@map("job_postings")
+}
+
+model JobApplication {
+  id            String      @id @default(cuid())
+  jobPostingId  String
+  jobPosting    JobPosting  @relation(fields: [jobPostingId], references: [id], onDelete: Cascade)
+  
+  // Applicant Information
+  firstName     String      @db.VarChar(100)
+  lastName      String      @db.VarChar(100)
+  email         String      @db.VarChar(255)
+  phone         String      @db.VarChar(20)
+  
+  // Application Details
+  coverLetter   String?     @db.Text
+  resumeUrl     String?     @db.VarChar(500)
+  
+  // Status
+  status        String      @default("pending") @db.VarChar(50)
+  notes         String?     @db.Text
+  
+  // Timestamps
+  appliedAt     DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+
+  @@index([jobPostingId])
+  @@index([status])
+  @@index([email])
+  @@map("job_applications")
+}
+
+// ============================================
+// EVENTS MODELS
+// ============================================
+
+model EventCategory {
+  id          String    @id @default(cuid())
+  name        String    @db.VarChar(255)
+  slug        String    @unique @db.VarChar(255)
+  description String?   @db.Text
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  events      Event[]
+
+  @@index([slug])
+  @@index([isActive])
+  @@map("event_categories")
+}
+
+model Event {
+  id              String          @id @default(cuid())
+  title           String          @db.VarChar(255)
+  slug            String          @unique @db.VarChar(255)
+  categoryId      String
+  category        EventCategory   @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  
+  // Event Details
+  eventType       String          @db.VarChar(50)
+  description     String?         @db.Text
+  
+  // Date & Time
+  startDate       DateTime
+  endDate         DateTime?
+  timeZone        String          @default("Asia/Kolkata") @db.VarChar(50)
+  
+  // Location
+  location        String?         @db.VarChar(255)
+  address         String?         @db.Text
+  city            String?         @db.VarChar(100)
+  isOnline        Boolean         @default(false)
+  onlineUrl       String?         @db.VarChar(500)
+  
+  // Media
+  imageUrl        String?         @db.VarChar(500)
+  
+  // Registration
+  requiresRegistration Boolean    @default(false)
+  registrationUrl      String?    @db.VarChar(500)
+  registrationDeadline DateTime?
+  maxAttendees         Int?
+  
+  // Status
+  status          String          @default("upcoming") @db.VarChar(50)
+  isPublished     Boolean         @default(true)
+  isFeatured      Boolean         @default(false)
+  
+  // Timestamps
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  
+  // Relations
+  eventAttendees  EventAttendee[]
+  eventDocuments  EventDocument[]
+
+  @@index([categoryId])
+  @@index([slug])
+  @@index([status])
+  @@index([isPublished])
+  @@index([startDate])
+  @@map("events")
+}
+
+model EventAttendee {
+  id          String   @id @default(cuid())
+  eventId     String
+  event       Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  
+  // Attendee Information
+  name        String   @db.VarChar(255)
+  email       String   @db.VarChar(255)
+  phone       String?  @db.VarChar(20)
+  company     String?  @db.VarChar(255)
+  
+  // Registration Details
+  registrationDate DateTime @default(now())
+  status          String   @default("registered") @db.VarChar(50)
+  
+  // Timestamps
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([eventId, email])
+  @@index([eventId])
+  @@index([status])
+  @@map("event_attendees")
+}
+
+model EventDocument {
+  id          String   @id @default(cuid())
+  eventId     String
+  event       Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  title       String   @db.VarChar(255)
+  documentUrl String   @db.VarChar(500)
+  documentType String  @db.VarChar(50)
+  createdAt   DateTime @default(now())
+
+  @@index([eventId])
+  @@map("event_documents")
+}
