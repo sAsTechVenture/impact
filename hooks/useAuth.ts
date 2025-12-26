@@ -62,7 +62,7 @@ export function useAuth(): UseAuthReturn {
     }
 
     setUser(data.user);
-    router.push("/admin");
+    router.push("/admin/dashboard");
     router.refresh();
   };
 

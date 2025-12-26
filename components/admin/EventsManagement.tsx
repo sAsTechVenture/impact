@@ -13,6 +13,14 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
+import {
+	Pagination,
+	PaginationContent,
+	PaginationItem,
+	PaginationLink,
+	PaginationNext,
+	PaginationPrevious,
+} from '@/components/ui/pagination';
 import { colors } from '@/config/theme';
 import {
 	Calendar,
@@ -44,6 +52,10 @@ export const EventsManagement: React.FC = () => {
 	const [searchTerm, setSearchTerm] = useState('');
 	const [isModalOpen, setIsModalOpen] = useState(false);
 	const [editingEvent, setEditingEvent] = useState<Event | null>(null);
+	const [currentPage, setCurrentPage] = useState(1);
+	const [totalPages, setTotalPages] = useState(1);
+	const [total, setTotal] = useState(0);
+	const ITEMS_PER_PAGE = 5;
 	const [formData, setFormData] = useState<Partial<Event> & { slug?: string }>({
 		title: '',
 		slug: '',
@@ -56,13 +68,22 @@ export const EventsManagement: React.FC = () => {
 
 	useEffect(() => {
 		fetchEvents();
-	}, []);
+	}, [currentPage, searchTerm]);
+
+	// Reset to page 1 when search term changes
+	useEffect(() => {
+		if (searchTerm !== '') {
+			setCurrentPage(1);
+		}
+	}, [searchTerm]);
 
 	const fetchEvents = async () => {
 		try {
 			setLoading(true);
-			const response = await api.events.list(1, 100, searchTerm);
+			const response = await api.events.list(currentPage, ITEMS_PER_PAGE, searchTerm);
 			setEvents(response.data || []);
+			setTotalPages(response.totalPages || 1);
+			setTotal(response.total || 0);
 		} catch (error) {
 			console.error('Error fetching events:', error);
 		} finally {
@@ -181,10 +202,8 @@ export const EventsManagement: React.FC = () => {
 		}
 	};
 
-	const filteredEvents = events.filter(event =>
-		event.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-		event.description?.toLowerCase().includes(searchTerm.toLowerCase())
-	);
+	// Events are already filtered by API, so we can use them directly
+	const filteredEvents = events;
 
 	return (
 		<div className="space-y-6">
@@ -249,73 +268,121 @@ export const EventsManagement: React.FC = () => {
 					</CardContent>
 				</Card>
 			) : (
-				<div className="space-y-4">
-					{filteredEvents.map((event) => (
-						<Card key={event.id}>
-							<CardContent className="pt-6">
-								<div className="flex items-start justify-between">
-									<div className="flex-1">
-										<div className="flex items-center gap-3 mb-2">
-											<h3
-												className="text-xl font-semibold"
-												style={{ color: colors.textPrimary }}
+				<>
+					<div className="space-y-4">
+						{filteredEvents.map((event) => (
+							<Card key={event.id}>
+								<CardContent className="pt-6">
+									<div className="flex items-start justify-between">
+										<div className="flex-1">
+											<div className="flex items-center gap-3 mb-2">
+												<h3
+													className="text-xl font-semibold"
+													style={{ color: colors.textPrimary }}
+												>
+													{event.title}
+												</h3>
+												<Badge className={getStatusColor(event.status)}>
+													{event.status}
+												</Badge>
+											</div>
+											<p
+												className="text-sm mb-3"
+												style={{ color: colors.gray }}
 											>
-												{event.title}
-											</h3>
-											<Badge className={getStatusColor(event.status)}>
-												{event.status}
-											</Badge>
-										</div>
-										<p
-											className="text-sm mb-3"
-											style={{ color: colors.gray }}
-										>
-											{event.description}
-										</p>
-										<div className="flex flex-wrap gap-4 text-sm">
-											<div>
-												<span style={{ color: colors.gray }}>Start: </span>
-												<span style={{ color: colors.textPrimary }}>
-													{new Date(event.startDate).toLocaleDateString()}
-												</span>
-											</div>
-											<div>
-												<span style={{ color: colors.gray }}>End: </span>
-												<span style={{ color: colors.textPrimary }}>
-													{new Date(event.endDate).toLocaleDateString()}
-												</span>
-											</div>
-											{event.location && (
+												{event.description}
+											</p>
+											<div className="flex flex-wrap gap-4 text-sm">
 												<div>
-													<span style={{ color: colors.gray }}>Location: </span>
+													<span style={{ color: colors.gray }}>Start: </span>
 													<span style={{ color: colors.textPrimary }}>
-														{event.location}
+														{new Date(event.startDate).toLocaleDateString()}
 													</span>
 												</div>
-											)}
+												<div>
+													<span style={{ color: colors.gray }}>End: </span>
+													<span style={{ color: colors.textPrimary }}>
+														{new Date(event.endDate).toLocaleDateString()}
+													</span>
+												</div>
+												{event.location && (
+													<div>
+														<span style={{ color: colors.gray }}>Location: </span>
+														<span style={{ color: colors.textPrimary }}>
+															{event.location}
+														</span>
+													</div>
+												)}
+											</div>
+										</div>
+										<div className="flex gap-2 ml-4">
+											<Button
+												variant="outline"
+												size="sm"
+												onClick={() => handleEdit(event)}
+											>
+												<Edit className="h-4 w-4" />
+											</Button>
+											<Button
+												variant="destructive"
+												size="sm"
+												onClick={() => handleDelete(event.id)}
+											>
+												<Trash2 className="h-4 w-4" />
+											</Button>
 										</div>
 									</div>
-									<div className="flex gap-2 ml-4">
-										<Button
-											variant="outline"
-											size="sm"
-											onClick={() => handleEdit(event)}
-										>
-											<Edit className="h-4 w-4" />
-										</Button>
-										<Button
-											variant="destructive"
-											size="sm"
-											onClick={() => handleDelete(event.id)}
-										>
-											<Trash2 className="h-4 w-4" />
-										</Button>
-									</div>
-								</div>
-							</CardContent>
-						</Card>
-					))}
-				</div>
+								</CardContent>
+							</Card>
+						))}
+					</div>
+					{totalPages > 1 && (
+						<div className="mt-6 flex justify-center">
+							<Pagination>
+								<PaginationContent>
+									<PaginationItem>
+										<PaginationPrevious
+											onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+											className={currentPage === 1 ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+										/>
+									</PaginationItem>
+									{Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => {
+										if (
+											page === 1 ||
+											page === totalPages ||
+											(page >= currentPage - 1 && page <= currentPage + 1)
+										) {
+											return (
+												<PaginationItem key={page}>
+													<PaginationLink
+														onClick={() => setCurrentPage(page)}
+														isActive={currentPage === page}
+														className="cursor-pointer"
+													>
+														{page}
+													</PaginationLink>
+												</PaginationItem>
+											);
+										} else if (page === currentPage - 2 || page === currentPage + 2) {
+											return (
+												<PaginationItem key={page}>
+													<span className="px-2">...</span>
+												</PaginationItem>
+											);
+										}
+										return null;
+									})}
+									<PaginationItem>
+										<PaginationNext
+											onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+											className={currentPage === totalPages ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+										/>
+									</PaginationItem>
+								</PaginationContent>
+							</Pagination>
+						</div>
+					)}
+				</>
 			)}
 
 			{/* Modal */}

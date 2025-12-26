@@ -13,6 +13,14 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
+import {
+	Pagination,
+	PaginationContent,
+	PaginationItem,
+	PaginationLink,
+	PaginationNext,
+	PaginationPrevious,
+} from '@/components/ui/pagination';
 import { colors } from '@/config/theme';
 import {
 	ShoppingBag,
@@ -59,6 +67,10 @@ export const ProductsManagement: React.FC = () => {
 	const [loading, setLoading] = useState(true);
 	const [searchTerm, setSearchTerm] = useState('');
 	const [selectedCategory, setSelectedCategory] = useState<string>('all');
+	const [currentPage, setCurrentPage] = useState(1);
+	const [totalPages, setTotalPages] = useState(1);
+	const [total, setTotal] = useState(0);
+	const ITEMS_PER_PAGE = 5;
 	const [isProductModalOpen, setIsProductModalOpen] = useState(false);
 	const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
 	const [editingProduct, setEditingProduct] = useState<Product | null>(null);
@@ -79,17 +91,24 @@ export const ProductsManagement: React.FC = () => {
 
 	useEffect(() => {
 		fetchData();
-	}, []);
+	}, [currentPage, searchTerm, selectedCategory]);
+
+	// Reset to page 1 when search term or category changes
+	useEffect(() => {
+		setCurrentPage(1);
+	}, [searchTerm, selectedCategory]);
 
 	const fetchData = async () => {
 		try {
 			setLoading(true);
 			const [productsRes, categoriesRes] = await Promise.all([
-				api.products.list(1, 100, searchTerm, selectedCategory !== 'all' ? selectedCategory : undefined),
+				api.products.list(currentPage, ITEMS_PER_PAGE, searchTerm, selectedCategory !== 'all' ? selectedCategory : undefined),
 				api.productCategories.list(1, 100),
 			]);
 			setProducts(productsRes.data || []);
 			setCategories(categoriesRes.data || []);
+			setTotalPages(productsRes.totalPages || 1);
+			setTotal(productsRes.total || 0);
 		} catch (error) {
 			console.error('Error fetching data:', error);
 		} finally {
@@ -234,12 +253,8 @@ export const ProductsManagement: React.FC = () => {
 		}
 	};
 
-	const filteredProducts = products.filter(product => {
-		const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-			product.description?.toLowerCase().includes(searchTerm.toLowerCase());
-		const matchesCategory = selectedCategory === 'all' || product.categoryId === selectedCategory;
-		return matchesSearch && matchesCategory;
-	});
+	// Products are already filtered by API, so we can use them directly
+	const filteredProducts = products;
 
 	return (
 		<div className="space-y-6">
@@ -374,83 +389,131 @@ export const ProductsManagement: React.FC = () => {
 					</CardContent>
 				</Card>
 			) : (
-				<div className="space-y-4">
-					{filteredProducts.map((product) => (
-						<Card key={product.id}>
-							<CardContent className="pt-6">
-								<div className="flex items-start justify-between">
-									<div className="flex-1">
-										<div className="flex items-center gap-3 mb-2">
-											<h3
-												className="text-xl font-semibold"
-												style={{ color: colors.textPrimary }}
-											>
-												{product.name}
-											</h3>
-											<Badge className={getStatusColor(
-												product.isActive !== undefined 
-													? (product.isActive ? 'active' : 'inactive')
-													: (product.status || 'active')
-											)}>
-												{(product.isActive !== undefined 
-													? (product.isActive ? 'active' : 'inactive')
-													: (product.status || 'active')
-												).replace('_', ' ')}
-											</Badge>
-											{product.category && (
-												<Badge variant="outline">
-													{product.category.name}
+				<>
+					<div className="space-y-4">
+						{filteredProducts.map((product) => (
+							<Card key={product.id}>
+								<CardContent className="pt-6">
+									<div className="flex items-start justify-between">
+										<div className="flex-1">
+											<div className="flex items-center gap-3 mb-2">
+												<h3
+													className="text-xl font-semibold"
+													style={{ color: colors.textPrimary }}
+												>
+													{product.name}
+												</h3>
+												<Badge className={getStatusColor(
+													product.isActive !== undefined 
+														? (product.isActive ? 'active' : 'inactive')
+														: (product.status || 'active')
+												)}>
+													{(product.isActive !== undefined 
+														? (product.isActive ? 'active' : 'inactive')
+														: (product.status || 'active')
+													).replace('_', ' ')}
 												</Badge>
-											)}
+												{product.category && (
+													<Badge variant="outline">
+														{product.category.name}
+													</Badge>
+												)}
+											</div>
+											<p
+												className="text-sm mb-3"
+												style={{ color: colors.gray }}
+											>
+												{product.description}
+											</p>
+											<div className="flex flex-wrap gap-4 text-sm items-center">
+												{product.price !== undefined && product.price > 0 && (
+													<p className="text-lg font-semibold" style={{ color: colors.primary }}>
+														{product.currency || 'INR'} {product.price}
+													</p>
+												)}
+												{product.sku && (
+													<p style={{ color: colors.gray }}>
+														SKU: <span style={{ color: colors.textPrimary }}>{product.sku}</span>
+													</p>
+												)}
+												{product.stock !== undefined && (
+													<p style={{ color: colors.gray }}>
+														Stock: <span style={{ color: colors.textPrimary }}>{product.stock}</span>
+													</p>
+												)}
+												{product.isAvailable === false && (
+													<Badge className="bg-red-100 text-red-800">Not Available</Badge>
+												)}
+											</div>
 										</div>
-										<p
-											className="text-sm mb-3"
-											style={{ color: colors.gray }}
-										>
-											{product.description}
-										</p>
-										<div className="flex flex-wrap gap-4 text-sm items-center">
-											{product.price !== undefined && product.price > 0 && (
-												<p className="text-lg font-semibold" style={{ color: colors.primary }}>
-													{product.currency || 'INR'} {product.price}
-												</p>
-											)}
-											{product.sku && (
-												<p style={{ color: colors.gray }}>
-													SKU: <span style={{ color: colors.textPrimary }}>{product.sku}</span>
-												</p>
-											)}
-											{product.stock !== undefined && (
-												<p style={{ color: colors.gray }}>
-													Stock: <span style={{ color: colors.textPrimary }}>{product.stock}</span>
-												</p>
-											)}
-											{product.isAvailable === false && (
-												<Badge className="bg-red-100 text-red-800">Not Available</Badge>
-											)}
+										<div className="flex gap-2 ml-4">
+											<Button
+												variant="outline"
+												size="sm"
+												onClick={() => handleProductEdit(product)}
+											>
+												<Edit className="h-4 w-4" />
+											</Button>
+											<Button
+												variant="destructive"
+												size="sm"
+												onClick={() => handleProductDelete(product.id)}
+											>
+												<Trash2 className="h-4 w-4" />
+											</Button>
 										</div>
 									</div>
-									<div className="flex gap-2 ml-4">
-										<Button
-											variant="outline"
-											size="sm"
-											onClick={() => handleProductEdit(product)}
-										>
-											<Edit className="h-4 w-4" />
-										</Button>
-										<Button
-											variant="destructive"
-											size="sm"
-											onClick={() => handleProductDelete(product.id)}
-										>
-											<Trash2 className="h-4 w-4" />
-										</Button>
-									</div>
-								</div>
-							</CardContent>
-						</Card>
-					))}
-				</div>
+								</CardContent>
+							</Card>
+						))}
+					</div>
+					{totalPages > 1 && (
+						<div className="mt-6 flex justify-center">
+							<Pagination>
+								<PaginationContent>
+									<PaginationItem>
+										<PaginationPrevious
+											onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+											className={currentPage === 1 ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+										/>
+									</PaginationItem>
+									{Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => {
+										if (
+											page === 1 ||
+											page === totalPages ||
+											(page >= currentPage - 1 && page <= currentPage + 1)
+										) {
+											return (
+												<PaginationItem key={page}>
+													<PaginationLink
+														onClick={() => setCurrentPage(page)}
+														isActive={currentPage === page}
+														className="cursor-pointer"
+													>
+														{page}
+													</PaginationLink>
+												</PaginationItem>
+											);
+										} else if (page === currentPage - 2 || page === currentPage + 2) {
+											return (
+												<PaginationItem key={page}>
+													<span className="px-2">...</span>
+												</PaginationItem>
+											);
+										}
+										return null;
+									})}
+									<PaginationItem>
+										<PaginationNext
+											onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+											className={currentPage === totalPages ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+										/>
+									</PaginationItem>
+								</PaginationContent>
+							</Pagination>
+						</div>
+					)}
+				</>
 			)}
 
 			{/* Product Modal */}

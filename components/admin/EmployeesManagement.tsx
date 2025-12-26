@@ -13,6 +13,14 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
+import {
+	Pagination,
+	PaginationContent,
+	PaginationItem,
+	PaginationLink,
+	PaginationNext,
+	PaginationPrevious,
+} from '@/components/ui/pagination';
 import { colors } from '@/config/theme';
 import {
 	Users,
@@ -57,6 +65,10 @@ export const EmployeesManagement: React.FC = () => {
 	const [isModalOpen, setIsModalOpen] = useState(false);
 	const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
 	const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set());
+	const [currentPage, setCurrentPage] = useState(1);
+	const [totalPages, setTotalPages] = useState(1);
+	const [total, setTotal] = useState(0);
+	const ITEMS_PER_PAGE = 5;
 	const [formData, setFormData] = useState<Partial<Employee>>({
 		name: '',
 		email: '',
@@ -70,12 +82,12 @@ export const EmployeesManagement: React.FC = () => {
 
 	useEffect(() => {
 		fetchEmployees();
-	}, []);
+	}, [currentPage, searchTerm]);
 
 	const fetchEmployees = async () => {
 		try {
 			setLoading(true);
-			const response = await api.employees.list(1, 100, searchTerm);
+			const response = await api.employees.list(currentPage, ITEMS_PER_PAGE, searchTerm);
 			const employeesList = (response.data || []).map((emp: any) => ({
 				...emp,
 				name: `${emp.firstName} ${emp.lastName}`,
@@ -87,6 +99,8 @@ export const EmployeesManagement: React.FC = () => {
 			// Build tree structure
 			const tree = buildEmployeeTree(employeesList);
 			setEmployees(tree);
+			setTotalPages(response.totalPages || 1);
+			setTotal(response.total || 0);
 		} catch (error) {
 			console.error('Error fetching employees:', error);
 		} finally {
@@ -216,6 +230,13 @@ export const EmployeesManagement: React.FC = () => {
 		traverse(employeesList);
 		return result;
 	};
+
+	// Reset to page 1 when search term changes
+	useEffect(() => {
+		if (searchTerm !== '') {
+			setCurrentPage(1);
+		}
+	}, [searchTerm]);
 
 	const filteredEmployees = getAllEmployees(employees).filter(emp =>
 		emp.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -414,9 +435,57 @@ export const EmployeesManagement: React.FC = () => {
 							))}
 						</div>
 					) : (
-						<div className="space-y-1">
-							{employees.map(employee => renderEmployeeNode(employee))}
-						</div>
+						<>
+							<div className="space-y-1">
+								{employees.map(employee => renderEmployeeNode(employee))}
+							</div>
+							{totalPages > 1 && (
+								<div className="mt-6 flex justify-center">
+									<Pagination>
+										<PaginationContent>
+											<PaginationItem>
+												<PaginationPrevious
+													onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+													className={currentPage === 1 ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+												/>
+											</PaginationItem>
+											{Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => {
+												if (
+													page === 1 ||
+													page === totalPages ||
+													(page >= currentPage - 1 && page <= currentPage + 1)
+												) {
+													return (
+														<PaginationItem key={page}>
+															<PaginationLink
+																onClick={() => setCurrentPage(page)}
+																isActive={currentPage === page}
+																className="cursor-pointer"
+															>
+																{page}
+															</PaginationLink>
+														</PaginationItem>
+													);
+												} else if (page === currentPage - 2 || page === currentPage + 2) {
+													return (
+														<PaginationItem key={page}>
+															<span className="px-2">...</span>
+														</PaginationItem>
+													);
+												}
+												return null;
+											})}
+											<PaginationItem>
+												<PaginationNext
+													onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+													className={currentPage === totalPages ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+												/>
+											</PaginationItem>
+										</PaginationContent>
+									</Pagination>
+								</div>
+							)}
+						</>
 					)}
 				</CardContent>
 			</Card>

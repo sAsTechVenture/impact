@@ -13,6 +13,14 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
+import {
+	Pagination,
+	PaginationContent,
+	PaginationItem,
+	PaginationLink,
+	PaginationNext,
+	PaginationPrevious,
+} from '@/components/ui/pagination';
 import { colors } from '@/config/theme';
 import {
 	Briefcase,
@@ -83,6 +91,10 @@ export const LifeCareerManagement: React.FC = () => {
 	const [searchTerm, setSearchTerm] = useState('');
 	const [selectedDepartment, setSelectedDepartment] = useState<string>('all');
 	const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
+	const [currentPage, setCurrentPage] = useState(1);
+	const [totalPages, setTotalPages] = useState(1);
+	const [total, setTotal] = useState(0);
+	const ITEMS_PER_PAGE = 5;
 	const [isJobModalOpen, setIsJobModalOpen] = useState(false);
 	const [isDepartmentModalOpen, setIsDepartmentModalOpen] = useState(false);
 	const [editingJob, setEditingJob] = useState<JobPosting | null>(null);
@@ -112,7 +124,12 @@ export const LifeCareerManagement: React.FC = () => {
 
 	useEffect(() => {
 		fetchData();
-	}, []);
+	}, [currentPage, searchTerm, selectedDepartment]);
+
+	// Reset to page 1 when search term or department changes
+	useEffect(() => {
+		setCurrentPage(1);
+	}, [searchTerm, selectedDepartment]);
 
 	useEffect(() => {
 		if (selectedJobId) {
@@ -124,11 +141,13 @@ export const LifeCareerManagement: React.FC = () => {
 		try {
 			setLoading(true);
 			const [jobsRes, deptsRes] = await Promise.all([
-				api.jobPostings.list(1, 100, searchTerm, selectedDepartment !== 'all' ? selectedDepartment : undefined),
+				api.jobPostings.list(currentPage, ITEMS_PER_PAGE, searchTerm, selectedDepartment !== 'all' ? selectedDepartment : undefined),
 				api.departments.list(1, 100),
 			]);
 			setJobPostings(jobsRes.data || []);
 			setDepartments(deptsRes.data || []);
+			setTotalPages(jobsRes.totalPages || 1);
+			setTotal(jobsRes.total || 0);
 		} catch (error) {
 			console.error('Error fetching data:', error);
 		} finally {
@@ -283,12 +302,8 @@ export const LifeCareerManagement: React.FC = () => {
 		setIsDepartmentModalOpen(false);
 	};
 
-	const filteredJobPostings = jobPostings.filter(job => {
-		const matchesSearch = job.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-			job.description?.toLowerCase().includes(searchTerm.toLowerCase());
-		const matchesDepartment = selectedDepartment === 'all' || job.departmentId === selectedDepartment;
-		return matchesSearch && matchesDepartment;
-	});
+	// Job postings are already filtered by API, so we can use them directly
+	const filteredJobPostings = jobPostings;
 
 	const getStatusColor = (status: string) => {
 		switch (status) {
@@ -426,82 +441,130 @@ export const LifeCareerManagement: React.FC = () => {
 							))}
 						</select>
 					</div>
-					<div className="space-y-4">
-						{filteredJobPostings.map((job) => (
-							<Card
-								key={job.id}
-								className={selectedJobId === job.id ? 'border-blue-500' : ''}
-							>
-								<CardContent className="pt-4">
-									<div className="flex items-start justify-between">
-										<div className="flex-1">
-											<div className="flex items-center gap-2 mb-2">
-												<h3 className="font-semibold text-lg">{job.title}</h3>
-												{job.isFeatured && (
-													<Badge style={{ backgroundColor: colors.primary }}>
-														Featured
-													</Badge>
+					<>
+						<div className="space-y-4">
+							{filteredJobPostings.map((job) => (
+								<Card
+									key={job.id}
+									className={selectedJobId === job.id ? 'border-blue-500' : ''}
+								>
+									<CardContent className="pt-4">
+										<div className="flex items-start justify-between">
+											<div className="flex-1">
+												<div className="flex items-center gap-2 mb-2">
+													<h3 className="font-semibold text-lg">{job.title}</h3>
+													{job.isFeatured && (
+														<Badge style={{ backgroundColor: colors.primary }}>
+															Featured
+														</Badge>
+													)}
+													{!job.isActive && (
+														<Badge variant="outline">Inactive</Badge>
+													)}
+												</div>
+												<div className="flex gap-4 text-sm text-gray-600 mb-2">
+													<span>{job.department?.name || 'No Department'}</span>
+													<span>•</span>
+													<span>{job.jobType}</span>
+													<span>•</span>
+													<span>{job.location}</span>
+													{job.isRemote && <span>• Remote</span>}
+												</div>
+												{job.description && (
+													<p className="text-sm text-gray-600 mb-2 line-clamp-2">
+														{job.description}
+													</p>
 												)}
-												{!job.isActive && (
-													<Badge variant="outline">Inactive</Badge>
-												)}
+												<div className="flex items-center gap-4 text-sm">
+													<span className="text-gray-600">
+														{job._count?.applications || 0} applicants
+													</span>
+													<span className="text-gray-600">
+														Posted: {new Date(job.postedAt).toLocaleDateString()}
+													</span>
+												</div>
 											</div>
-											<div className="flex gap-4 text-sm text-gray-600 mb-2">
-												<span>{job.department?.name || 'No Department'}</span>
-												<span>•</span>
-												<span>{job.jobType}</span>
-												<span>•</span>
-												<span>{job.location}</span>
-												{job.isRemote && <span>• Remote</span>}
-											</div>
-											{job.description && (
-												<p className="text-sm text-gray-600 mb-2 line-clamp-2">
-													{job.description}
-												</p>
-											)}
-											<div className="flex items-center gap-4 text-sm">
-												<span className="text-gray-600">
-													{job._count?.applications || 0} applicants
-												</span>
-												<span className="text-gray-600">
-													Posted: {new Date(job.postedAt).toLocaleDateString()}
-												</span>
+											<div className="flex gap-2">
+												<Button
+													variant="outline"
+													size="sm"
+													onClick={() => {
+														setSelectedJobId(selectedJobId === job.id ? null : job.id);
+														if (selectedJobId !== job.id) {
+															fetchApplications(job.id);
+														}
+													}}
+												>
+													<Users className="mr-2 h-4 w-4" />
+													View Applicants
+												</Button>
+												<Button
+													variant="ghost"
+													size="icon"
+													onClick={() => handleJobEdit(job)}
+												>
+													<Edit className="h-4 w-4" />
+												</Button>
+												<Button
+													variant="ghost"
+													size="icon"
+													onClick={() => handleJobDelete(job.id)}
+												>
+													<Trash2 className="h-4 w-4 text-red-500" />
+												</Button>
 											</div>
 										</div>
-										<div className="flex gap-2">
-											<Button
-												variant="outline"
-												size="sm"
-												onClick={() => {
-													setSelectedJobId(selectedJobId === job.id ? null : job.id);
-													if (selectedJobId !== job.id) {
-														fetchApplications(job.id);
-													}
-												}}
-											>
-												<Users className="mr-2 h-4 w-4" />
-												View Applicants
-											</Button>
-											<Button
-												variant="ghost"
-												size="icon"
-												onClick={() => handleJobEdit(job)}
-											>
-												<Edit className="h-4 w-4" />
-											</Button>
-											<Button
-												variant="ghost"
-												size="icon"
-												onClick={() => handleJobDelete(job.id)}
-											>
-												<Trash2 className="h-4 w-4 text-red-500" />
-											</Button>
-										</div>
-									</div>
-								</CardContent>
-							</Card>
-						))}
-					</div>
+									</CardContent>
+								</Card>
+							))}
+						</div>
+						{totalPages > 1 && (
+							<div className="mt-6 flex justify-center">
+								<Pagination>
+									<PaginationContent>
+										<PaginationItem>
+											<PaginationPrevious
+												onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+												className={currentPage === 1 ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+											/>
+										</PaginationItem>
+										{Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => {
+											if (
+												page === 1 ||
+												page === totalPages ||
+												(page >= currentPage - 1 && page <= currentPage + 1)
+											) {
+												return (
+													<PaginationItem key={page}>
+														<PaginationLink
+															onClick={() => setCurrentPage(page)}
+															isActive={currentPage === page}
+															className="cursor-pointer"
+														>
+															{page}
+														</PaginationLink>
+													</PaginationItem>
+												);
+											} else if (page === currentPage - 2 || page === currentPage + 2) {
+												return (
+													<PaginationItem key={page}>
+														<span className="px-2">...</span>
+													</PaginationItem>
+												);
+											}
+											return null;
+										})}
+										<PaginationItem>
+											<PaginationNext
+												onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+												className={currentPage === totalPages ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+											/>
+										</PaginationItem>
+									</PaginationContent>
+								</Pagination>
+							</div>
+						)}
+					</>
 				</CardContent>
 			</Card>
 

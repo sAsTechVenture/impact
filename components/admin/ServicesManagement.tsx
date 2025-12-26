@@ -13,6 +13,14 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
+import {
+	Pagination,
+	PaginationContent,
+	PaginationItem,
+	PaginationLink,
+	PaginationNext,
+	PaginationPrevious,
+} from '@/components/ui/pagination';
 import { colors } from '@/config/theme';
 import {
 	Briefcase,
@@ -59,6 +67,10 @@ export const ServicesManagement: React.FC = () => {
 	const [loading, setLoading] = useState(true);
 	const [searchTerm, setSearchTerm] = useState('');
 	const [selectedCategory, setSelectedCategory] = useState<string>('all');
+	const [currentPage, setCurrentPage] = useState(1);
+	const [totalPages, setTotalPages] = useState(1);
+	const [total, setTotal] = useState(0);
+	const ITEMS_PER_PAGE = 5;
 	const [isServiceModalOpen, setIsServiceModalOpen] = useState(false);
 	const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
 	const [editingService, setEditingService] = useState<Service | null>(null);
@@ -80,17 +92,24 @@ export const ServicesManagement: React.FC = () => {
 
 	useEffect(() => {
 		fetchData();
-	}, []);
+	}, [currentPage, searchTerm, selectedCategory]);
+
+	// Reset to page 1 when search term or category changes
+	useEffect(() => {
+		setCurrentPage(1);
+	}, [searchTerm, selectedCategory]);
 
 	const fetchData = async () => {
 		try {
 			setLoading(true);
 			const [servicesRes, categoriesRes] = await Promise.all([
-				api.services.list(1, 100, searchTerm, selectedCategory !== 'all' ? selectedCategory : undefined),
+				api.services.list(currentPage, ITEMS_PER_PAGE, searchTerm, selectedCategory !== 'all' ? selectedCategory : undefined),
 				api.serviceCategories.list(1, 100),
 			]);
 			setServices(servicesRes.data || []);
 			setCategories(categoriesRes.data || []);
+			setTotalPages(servicesRes.totalPages || 1);
+			setTotal(servicesRes.total || 0);
 		} catch (error) {
 			console.error('Error fetching data:', error);
 		} finally {
@@ -224,12 +243,8 @@ export const ServicesManagement: React.FC = () => {
 		setIsCategoryModalOpen(false);
 	};
 
-	const filteredServices = services.filter(service => {
-		const matchesSearch = service.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-			service.description?.toLowerCase().includes(searchTerm.toLowerCase());
-		const matchesCategory = selectedCategory === 'all' || service.categoryId === selectedCategory;
-		return matchesSearch && matchesCategory;
-	});
+	// Services are already filtered by API, so we can use them directly
+	const filteredServices = services;
 
 	return (
 		<div className="space-y-6">
@@ -364,75 +379,123 @@ export const ServicesManagement: React.FC = () => {
 					</CardContent>
 				</Card>
 			) : (
-				<div className="space-y-4">
-					{filteredServices.map((service) => (
-						<Card key={service.id}>
-							<CardContent className="pt-6">
-								<div className="flex items-start justify-between">
-									<div className="flex-1">
-										<div className="flex items-center gap-3 mb-2">
-											<h3
-												className="text-xl font-semibold"
-												style={{ color: colors.textPrimary }}
-											>
-												{service.name}
-											</h3>
-											<Badge className={(service.isActive !== undefined ? service.isActive : service.status === 'active') ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}>
-												{service.isActive !== undefined ? (service.isActive ? 'active' : 'inactive') : (service.status || 'active')}
-											</Badge>
-											{service.category && (
-												<Badge variant="outline">
-													{service.category.name}
-												</Badge>
-											)}
-										</div>
-										<p
-											className="text-sm mb-3"
-											style={{ color: colors.gray }}
-										>
-											{service.description}
-										</p>
-										<div className="flex items-center gap-4 mb-2">
-											{service.price !== undefined && service.price > 0 && (
-												<p className="text-lg font-semibold" style={{ color: colors.primary }}>
-													{service.currency || 'INR'} {service.price}
-												</p>
-											)}
-											{service.bookUrl && (
-												<p>Booking Url: 
-												<a
-													href={service.bookUrl}
-													target="_blank"
-													rel="noopener noreferrer"
-													className="text-sm ml-1 text-blue-600 hover:underline"
+				<>
+					<div className="space-y-4">
+						{filteredServices.map((service) => (
+							<Card key={service.id}>
+								<CardContent className="pt-6">
+									<div className="flex items-start justify-between">
+										<div className="flex-1">
+											<div className="flex items-center gap-3 mb-2">
+												<h3
+													className="text-xl font-semibold"
+													style={{ color: colors.textPrimary }}
 												>
-													{service.bookUrl}
-												</a>
-												</p>
-											)}
+													{service.name}
+												</h3>
+												<Badge className={(service.isActive !== undefined ? service.isActive : service.status === 'active') ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}>
+													{service.isActive !== undefined ? (service.isActive ? 'active' : 'inactive') : (service.status || 'active')}
+												</Badge>
+												{service.category && (
+													<Badge variant="outline">
+														{service.category.name}
+													</Badge>
+												)}
+											</div>
+											<p
+												className="text-sm mb-3"
+												style={{ color: colors.gray }}
+											>
+												{service.description}
+											</p>
+											<div className="flex items-center gap-4 mb-2">
+												{service.price !== undefined && service.price > 0 && (
+													<p className="text-lg font-semibold" style={{ color: colors.primary }}>
+														{service.currency || 'INR'} {service.price}
+													</p>
+												)}
+												{service.bookUrl && (
+													<p>Booking Url: 
+													<a
+														href={service.bookUrl}
+														target="_blank"
+														rel="noopener noreferrer"
+														className="text-sm ml-1 text-blue-600 hover:underline"
+													>
+														{service.bookUrl}
+													</a>
+													</p>
+												)}
+											</div>
+										</div>
+										<div className="flex gap-2 ml-4">
+											<Button
+												variant="outline"
+												size="sm"
+												onClick={() => handleServiceEdit(service)}
+											>
+												<Edit className="h-4 w-4" />
+											</Button>
+											<Button
+												variant="destructive"
+												size="sm"
+												onClick={() => handleServiceDelete(service.id)}
+											>
+												<Trash2 className="h-4 w-4" />
+											</Button>
 										</div>
 									</div>
-									<div className="flex gap-2 ml-4">
-										<Button
-											variant="outline"
-											size="sm"
-											onClick={() => handleServiceEdit(service)}
-										>
-											<Edit className="h-4 w-4" />
-										</Button>
-										<Button
-											variant="destructive"
-											size="sm"
-											onClick={() => handleServiceDelete(service.id)}
-										>
-											<Trash2 className="h-4 w-4" />
-										</Button>
-									</div>
-								</div>
-							</CardContent>
-						</Card>
-					))}
-				</div>
+								</CardContent>
+							</Card>
+						))}
+					</div>
+					{totalPages > 1 && (
+						<div className="mt-6 flex justify-center">
+							<Pagination>
+								<PaginationContent>
+									<PaginationItem>
+										<PaginationPrevious
+											onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+											className={currentPage === 1 ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+										/>
+									</PaginationItem>
+									{Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => {
+										if (
+											page === 1 ||
+											page === totalPages ||
+											(page >= currentPage - 1 && page <= currentPage + 1)
+										) {
+											return (
+												<PaginationItem key={page}>
+													<PaginationLink
+														onClick={() => setCurrentPage(page)}
+														isActive={currentPage === page}
+														className="cursor-pointer"
+													>
+														{page}
+													</PaginationLink>
+												</PaginationItem>
+											);
+										} else if (page === currentPage - 2 || page === currentPage + 2) {
+											return (
+												<PaginationItem key={page}>
+													<span className="px-2">...</span>
+												</PaginationItem>
+											);
+										}
+										return null;
+									})}
+									<PaginationItem>
+										<PaginationNext
+											onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+											className={currentPage === totalPages ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+										/>
+									</PaginationItem>
+								</PaginationContent>
+							</Pagination>
+						</div>
+					)}
+				</>
 			)}
 
 			{/* Service Modal */}
