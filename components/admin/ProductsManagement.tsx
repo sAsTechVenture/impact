@@ -21,6 +21,18 @@ import {
 	PaginationNext,
 	PaginationPrevious,
 } from '@/components/ui/pagination';
+import { ImageUpload } from '@/components/ui/image-upload';
+import {
+	AlertDialog,
+	AlertDialogAction,
+	AlertDialogCancel,
+	AlertDialogContent,
+	AlertDialogDescription,
+	AlertDialogFooter,
+	AlertDialogHeader,
+	AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { colors } from '@/config/theme';
 import {
 	ShoppingBag,
@@ -31,6 +43,7 @@ import {
 	X,
 	Save,
 	Folder,
+	Loader2,
 } from 'lucide-react';
 import { api } from '@/utils/api';
 
@@ -71,6 +84,11 @@ export const ProductsManagement: React.FC = () => {
 	const [totalPages, setTotalPages] = useState(1);
 	const [total, setTotal] = useState(0);
 	const ITEMS_PER_PAGE = 5;
+	const [isSubmittingProduct, setIsSubmittingProduct] = useState(false);
+	const [isSubmittingCategory, setIsSubmittingCategory] = useState(false);
+	const [errorDialog, setErrorDialog] = useState<{ open: boolean; message: string }>({ open: false, message: '' });
+	const [deleteProductDialog, setDeleteProductDialog] = useState<{ open: boolean; id: string | null }>({ open: false, id: null });
+	const [deleteCategoryDialog, setDeleteCategoryDialog] = useState<{ open: boolean; id: string | null }>({ open: false, id: null });
 	const [isProductModalOpen, setIsProductModalOpen] = useState(false);
 	const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
 	const [editingProduct, setEditingProduct] = useState<Product | null>(null);
@@ -83,6 +101,7 @@ export const ProductsManagement: React.FC = () => {
 		stock: 0,
 		status: 'active',
 		currency: 'INR',
+		imageUrl: '',
 	});
 	const [categoryFormData, setCategoryFormData] = useState<Partial<ProductCategory>>({
 		name: '',
@@ -119,6 +138,7 @@ export const ProductsManagement: React.FC = () => {
 	const handleProductSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
 		try {
+			setIsSubmittingProduct(true);
 			// Prepare data for API - ensure slug is generated if not provided
 			const productData = {
 				...productFormData,
@@ -132,9 +152,12 @@ export const ProductsManagement: React.FC = () => {
 			}
 			resetProductForm();
 			fetchData();
-		} catch (error) {
+		} catch (error: any) {
 			console.error('Error saving product:', error);
-			alert('Failed to save product. Please try again.');
+			const errorMessage = error?.response?.error || error?.message || 'Failed to save product. Please try again.';
+			setErrorDialog({ open: true, message: errorMessage });
+		} finally {
+			setIsSubmittingProduct(false);
 		}
 	};
 
@@ -151,6 +174,7 @@ export const ProductsManagement: React.FC = () => {
 	const handleCategorySubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
 		try {
+			setIsSubmittingCategory(true);
 			const categoryData = {
 				...categoryFormData,
 				slug: editingCategory?.slug || generateSlug(categoryFormData.name || ''),
@@ -162,31 +186,46 @@ export const ProductsManagement: React.FC = () => {
 			}
 			resetCategoryForm();
 			fetchData();
-		} catch (error) {
+		} catch (error: any) {
 			console.error('Error saving category:', error);
-			alert('Failed to save category. Please try again.');
+			const errorMessage = error?.response?.error || error?.message || 'Failed to save category. Please try again.';
+			setErrorDialog({ open: true, message: errorMessage });
+		} finally {
+			setIsSubmittingCategory(false);
 		}
 	};
 
 	const handleProductDelete = async (id: string) => {
-		if (!confirm('Are you sure you want to delete this product?')) return;
+		setDeleteProductDialog({ open: true, id });
+	};
+
+	const confirmProductDelete = async () => {
+		if (!deleteProductDialog.id) return;
 		try {
-			await api.products.delete(id);
+			await api.products.delete(deleteProductDialog.id);
 			fetchData();
+			setDeleteProductDialog({ open: false, id: null });
 		} catch (error) {
 			console.error('Error deleting product:', error);
-			alert('Failed to delete product. Please try again.');
+			setErrorDialog({ open: true, message: 'Failed to delete product. Please try again.' });
+			setDeleteProductDialog({ open: false, id: null });
 		}
 	};
 
 	const handleCategoryDelete = async (id: string) => {
-		if (!confirm('Are you sure you want to delete this category? All products in this category will be affected.')) return;
+		setDeleteCategoryDialog({ open: true, id });
+	};
+
+	const confirmCategoryDelete = async () => {
+		if (!deleteCategoryDialog.id) return;
 		try {
-			await api.productCategories.delete(id);
+			await api.productCategories.delete(deleteCategoryDialog.id);
 			fetchData();
+			setDeleteCategoryDialog({ open: false, id: null });
 		} catch (error) {
 			console.error('Error deleting category:', error);
-			alert('Failed to delete category. Please try again.');
+			setErrorDialog({ open: true, message: 'Failed to delete category. Please try again.' });
+			setDeleteCategoryDialog({ open: false, id: null });
 		}
 	};
 
@@ -204,6 +243,7 @@ export const ProductsManagement: React.FC = () => {
 				? (product.isActive ? 'active' : 'inactive')
 				: product.status || 'active',
 			currency: product.currency || 'INR',
+			imageUrl: product.imageUrl || '',
 		});
 		setIsProductModalOpen(true);
 	};
@@ -226,6 +266,7 @@ export const ProductsManagement: React.FC = () => {
 			stock: 0,
 			status: 'active',
 			currency: 'INR',
+			imageUrl: '',
 		});
 		setEditingProduct(null);
 		setIsProductModalOpen(false);
@@ -589,6 +630,14 @@ export const ProductsManagement: React.FC = () => {
 										placeholder="Product SKU"
 									/>
 								</div>
+								<div>
+									<ImageUpload
+										value={productFormData.imageUrl}
+										onChange={(url) => setProductFormData({ ...productFormData, imageUrl: url })}
+										folder="products"
+										label="Product Image"
+									/>
+								</div>
 								<div className="grid grid-cols-3 gap-4">
 									<div>
 										<Label htmlFor="productPrice">Price *</Label>
@@ -662,8 +711,13 @@ export const ProductsManagement: React.FC = () => {
 									<Button
 										type="submit"
 										style={{ backgroundColor: colors.primary }}
+										disabled={isSubmittingProduct}
 									>
-										<Save className="mr-2 h-4 w-4" />
+										{isSubmittingProduct ? (
+											<Loader2 className="mr-2 h-4 w-4 animate-spin" />
+										) : (
+											<Save className="mr-2 h-4 w-4" />
+										)}
 										{editingProduct ? 'Update' : 'Create'}
 									</Button>
 								</div>
@@ -726,8 +780,13 @@ export const ProductsManagement: React.FC = () => {
 									<Button
 										type="submit"
 										style={{ backgroundColor: colors.primary }}
+										disabled={isSubmittingCategory}
 									>
-										<Save className="mr-2 h-4 w-4" />
+										{isSubmittingCategory ? (
+											<Loader2 className="mr-2 h-4 w-4 animate-spin" />
+										) : (
+											<Save className="mr-2 h-4 w-4" />
+										)}
 										{editingCategory ? 'Update' : 'Create'}
 									</Button>
 								</div>
@@ -736,6 +795,48 @@ export const ProductsManagement: React.FC = () => {
 					</Card>
 				</div>
 			)}
+
+			{/* Error Dialog */}
+			<Dialog open={errorDialog.open} onOpenChange={(open) => setErrorDialog({ open, message: '' })}>
+				<DialogContent>
+					<DialogHeader>
+						<DialogTitle>Error</DialogTitle>
+						<DialogDescription>{errorDialog.message}</DialogDescription>
+					</DialogHeader>
+				</DialogContent>
+			</Dialog>
+
+			{/* Delete Product Confirmation Dialog */}
+			<AlertDialog open={deleteProductDialog.open} onOpenChange={(open) => setDeleteProductDialog({ open, id: null })}>
+				<AlertDialogContent>
+					<AlertDialogHeader>
+						<AlertDialogTitle>Are you sure?</AlertDialogTitle>
+						<AlertDialogDescription>
+							This action cannot be undone. This will permanently delete the product.
+						</AlertDialogDescription>
+					</AlertDialogHeader>
+					<AlertDialogFooter>
+						<AlertDialogCancel>Cancel</AlertDialogCancel>
+						<AlertDialogAction onClick={confirmProductDelete}>Delete</AlertDialogAction>
+					</AlertDialogFooter>
+				</AlertDialogContent>
+			</AlertDialog>
+
+			{/* Delete Category Confirmation Dialog */}
+			<AlertDialog open={deleteCategoryDialog.open} onOpenChange={(open) => setDeleteCategoryDialog({ open, id: null })}>
+				<AlertDialogContent>
+					<AlertDialogHeader>
+						<AlertDialogTitle>Are you sure?</AlertDialogTitle>
+						<AlertDialogDescription>
+							This action cannot be undone. This will permanently delete the category. All products in this category will be affected.
+						</AlertDialogDescription>
+					</AlertDialogHeader>
+					<AlertDialogFooter>
+						<AlertDialogCancel>Cancel</AlertDialogCancel>
+						<AlertDialogAction onClick={confirmCategoryDelete}>Delete</AlertDialogAction>
+					</AlertDialogFooter>
+				</AlertDialogContent>
+			</AlertDialog>
 		</div>
 	);
 };

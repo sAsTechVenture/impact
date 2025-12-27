@@ -24,11 +24,16 @@ export async function GET(request: NextRequest) {
     }
 
     const [events, total] = await Promise.all([
-      prisma.event.findMany({
+      (prisma.event.findMany as any)({
         where,
         skip,
         take: limit,
         orderBy: { startDate: "desc" },
+        include: {
+          eventImages: {
+            orderBy: { sortOrder: "asc" },
+          },
+        },
       }),
       prisma.event.count({ where }),
     ]);
@@ -78,6 +83,8 @@ export async function POST(request: NextRequest) {
       isPublished,
       isFeatured,
       imageUrl,
+      videoUrl,
+      eventImages,
     } = body;
 
     // Validate required fields
@@ -101,7 +108,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const event = await prisma.event.create({
+    const event = await (prisma.event.create as any)({
       data: {
         title,
         slug,
@@ -125,7 +132,18 @@ export async function POST(request: NextRequest) {
         isPublished: isPublished !== undefined ? isPublished : true,
         isFeatured: isFeatured || false,
         imageUrl,
-      } as any, // Temporary: Prisma client types need regeneration after schema changes
+        videoUrl,
+        eventImages: eventImages && Array.isArray(eventImages) ? {
+          create: eventImages.map((url: string, index: number) => ({
+            imageUrl: url,
+            isPrimary: index === 0,
+            sortOrder: index,
+          })),
+        } : undefined,
+      },
+      include: {
+        eventImages: true,
+      },
     });
 
     return NextResponse.json(event, { status: 201 });

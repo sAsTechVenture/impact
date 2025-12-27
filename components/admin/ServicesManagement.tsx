@@ -21,6 +21,18 @@ import {
 	PaginationNext,
 	PaginationPrevious,
 } from '@/components/ui/pagination';
+import { ImageUpload } from '@/components/ui/image-upload';
+import {
+	AlertDialog,
+	AlertDialogAction,
+	AlertDialogCancel,
+	AlertDialogContent,
+	AlertDialogDescription,
+	AlertDialogFooter,
+	AlertDialogHeader,
+	AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { colors } from '@/config/theme';
 import {
 	Briefcase,
@@ -31,6 +43,7 @@ import {
 	X,
 	Save,
 	Folder,
+	Loader2,
 } from 'lucide-react';
 import { api } from '@/utils/api';
 
@@ -71,6 +84,11 @@ export const ServicesManagement: React.FC = () => {
 	const [totalPages, setTotalPages] = useState(1);
 	const [total, setTotal] = useState(0);
 	const ITEMS_PER_PAGE = 5;
+	const [isSubmittingService, setIsSubmittingService] = useState(false);
+	const [isSubmittingCategory, setIsSubmittingCategory] = useState(false);
+	const [errorDialog, setErrorDialog] = useState<{ open: boolean; message: string }>({ open: false, message: '' });
+	const [deleteServiceDialog, setDeleteServiceDialog] = useState<{ open: boolean; id: string | null }>({ open: false, id: null });
+	const [deleteCategoryDialog, setDeleteCategoryDialog] = useState<{ open: boolean; id: string | null }>({ open: false, id: null });
 	const [isServiceModalOpen, setIsServiceModalOpen] = useState(false);
 	const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
 	const [editingService, setEditingService] = useState<Service | null>(null);
@@ -84,6 +102,7 @@ export const ServicesManagement: React.FC = () => {
 		serviceType: 'standard',
 		currency: 'INR',
 		bookUrl: '',
+		imageUrl: '',
 	});
 	const [categoryFormData, setCategoryFormData] = useState<Partial<ServiceCategory>>({
 		name: '',
@@ -120,6 +139,7 @@ export const ServicesManagement: React.FC = () => {
 	const handleServiceSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
 		try {
+			setIsSubmittingService(true);
 			// Prepare data for API - ensure slug is generated if not provided
 			const serviceData = {
 				...serviceFormData,
@@ -133,9 +153,12 @@ export const ServicesManagement: React.FC = () => {
 			}
 			resetServiceForm();
 			fetchData();
-		} catch (error) {
+		} catch (error: any) {
 			console.error('Error saving service:', error);
-			alert('Failed to save service. Please try again.');
+			const errorMessage = error?.response?.error || error?.message || 'Failed to save service. Please try again.';
+			setErrorDialog({ open: true, message: errorMessage });
+		} finally {
+			setIsSubmittingService(false);
 		}
 	};
 
@@ -152,6 +175,7 @@ export const ServicesManagement: React.FC = () => {
 	const handleCategorySubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
 		try {
+			setIsSubmittingCategory(true);
 			const categoryData = {
 				...categoryFormData,
 				slug: editingCategory?.slug || generateSlug(categoryFormData.name || ''),
@@ -163,31 +187,46 @@ export const ServicesManagement: React.FC = () => {
 			}
 			resetCategoryForm();
 			fetchData();
-		} catch (error) {
+		} catch (error: any) {
 			console.error('Error saving category:', error);
-			alert('Failed to save category. Please try again.');
+			const errorMessage = error?.response?.error || error?.message || 'Failed to save category. Please try again.';
+			setErrorDialog({ open: true, message: errorMessage });
+		} finally {
+			setIsSubmittingCategory(false);
 		}
 	};
 
 	const handleServiceDelete = async (id: string) => {
-		if (!confirm('Are you sure you want to delete this service?')) return;
+		setDeleteServiceDialog({ open: true, id });
+	};
+
+	const confirmServiceDelete = async () => {
+		if (!deleteServiceDialog.id) return;
 		try {
-			await api.services.delete(id);
+			await api.services.delete(deleteServiceDialog.id);
 			fetchData();
+			setDeleteServiceDialog({ open: false, id: null });
 		} catch (error) {
 			console.error('Error deleting service:', error);
-			alert('Failed to delete service. Please try again.');
+			setErrorDialog({ open: true, message: 'Failed to delete service. Please try again.' });
+			setDeleteServiceDialog({ open: false, id: null });
 		}
 	};
 
 	const handleCategoryDelete = async (id: string) => {
-		if (!confirm('Are you sure you want to delete this category? All services in this category will be affected.')) return;
+		setDeleteCategoryDialog({ open: true, id });
+	};
+
+	const confirmCategoryDelete = async () => {
+		if (!deleteCategoryDialog.id) return;
 		try {
-			await api.serviceCategories.delete(id);
+			await api.serviceCategories.delete(deleteCategoryDialog.id);
 			fetchData();
+			setDeleteCategoryDialog({ open: false, id: null });
 		} catch (error) {
 			console.error('Error deleting category:', error);
-			alert('Failed to delete category. Please try again.');
+			setErrorDialog({ open: true, message: 'Failed to delete category. Please try again.' });
+			setDeleteCategoryDialog({ open: false, id: null });
 		}
 	};
 
@@ -206,6 +245,7 @@ export const ServicesManagement: React.FC = () => {
 			duration: service.duration,
 			currency: service.currency || 'INR',
 			bookUrl: service.bookUrl || '',
+			imageUrl: service.imageUrl || '',
 		});
 		setIsServiceModalOpen(true);
 	};
@@ -229,6 +269,7 @@ export const ServicesManagement: React.FC = () => {
 			serviceType: 'standard',
 			currency: 'INR',
 			bookUrl: '',
+			imageUrl: '',
 		});
 		setEditingService(null);
 		setIsServiceModalOpen(false);
@@ -586,6 +627,14 @@ export const ServicesManagement: React.FC = () => {
 									/>
 								</div>
 								<div>
+									<ImageUpload
+										value={serviceFormData.imageUrl}
+										onChange={(url) => setServiceFormData({ ...serviceFormData, imageUrl: url })}
+										folder="services"
+										label="Service Image"
+									/>
+								</div>
+								<div>
 									<Label htmlFor="serviceStatus">Status *</Label>
 									<select
 										id="serviceStatus"
@@ -614,8 +663,13 @@ export const ServicesManagement: React.FC = () => {
 									<Button
 										type="submit"
 										style={{ backgroundColor: colors.primary }}
+										disabled={isSubmittingService}
 									>
-										<Save className="mr-2 h-4 w-4" />
+										{isSubmittingService ? (
+											<Loader2 className="mr-2 h-4 w-4 animate-spin" />
+										) : (
+											<Save className="mr-2 h-4 w-4" />
+										)}
 										{editingService ? 'Update' : 'Create'}
 									</Button>
 								</div>
@@ -678,8 +732,13 @@ export const ServicesManagement: React.FC = () => {
 									<Button
 										type="submit"
 										style={{ backgroundColor: colors.primary }}
+										disabled={isSubmittingCategory}
 									>
-										<Save className="mr-2 h-4 w-4" />
+										{isSubmittingCategory ? (
+											<Loader2 className="mr-2 h-4 w-4 animate-spin" />
+										) : (
+											<Save className="mr-2 h-4 w-4" />
+										)}
 										{editingCategory ? 'Update' : 'Create'}
 									</Button>
 								</div>
@@ -688,6 +747,48 @@ export const ServicesManagement: React.FC = () => {
 					</Card>
 				</div>
 			)}
+
+			{/* Error Dialog */}
+			<Dialog open={errorDialog.open} onOpenChange={(open) => setErrorDialog({ open, message: '' })}>
+				<DialogContent>
+					<DialogHeader>
+						<DialogTitle>Error</DialogTitle>
+						<DialogDescription>{errorDialog.message}</DialogDescription>
+					</DialogHeader>
+				</DialogContent>
+			</Dialog>
+
+			{/* Delete Service Confirmation Dialog */}
+			<AlertDialog open={deleteServiceDialog.open} onOpenChange={(open) => setDeleteServiceDialog({ open, id: null })}>
+				<AlertDialogContent>
+					<AlertDialogHeader>
+						<AlertDialogTitle>Are you sure?</AlertDialogTitle>
+						<AlertDialogDescription>
+							This action cannot be undone. This will permanently delete the service.
+						</AlertDialogDescription>
+					</AlertDialogHeader>
+					<AlertDialogFooter>
+						<AlertDialogCancel>Cancel</AlertDialogCancel>
+						<AlertDialogAction onClick={confirmServiceDelete}>Delete</AlertDialogAction>
+					</AlertDialogFooter>
+				</AlertDialogContent>
+			</AlertDialog>
+
+			{/* Delete Category Confirmation Dialog */}
+			<AlertDialog open={deleteCategoryDialog.open} onOpenChange={(open) => setDeleteCategoryDialog({ open, id: null })}>
+				<AlertDialogContent>
+					<AlertDialogHeader>
+						<AlertDialogTitle>Are you sure?</AlertDialogTitle>
+						<AlertDialogDescription>
+							This action cannot be undone. This will permanently delete the category. All services in this category will be affected.
+						</AlertDialogDescription>
+					</AlertDialogHeader>
+					<AlertDialogFooter>
+						<AlertDialogCancel>Cancel</AlertDialogCancel>
+						<AlertDialogAction onClick={confirmCategoryDelete}>Delete</AlertDialogAction>
+					</AlertDialogFooter>
+				</AlertDialogContent>
+			</AlertDialog>
 		</div>
 	);
 };

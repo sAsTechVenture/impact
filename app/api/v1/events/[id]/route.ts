@@ -9,8 +9,13 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
-    const event = await prisma.event.findUnique({
+    const event = await (prisma.event.findUnique as any)({
       where: { id },
+      include: {
+        eventImages: {
+          orderBy: { sortOrder: "asc" },
+        },
+      },
     });
 
     if (!event) {
@@ -59,6 +64,8 @@ export async function PUT(
       isPublished,
       isFeatured,
       imageUrl,
+      videoUrl,
+      eventImages,
     } = body;
 
     // Check if event exists
@@ -112,10 +119,40 @@ export async function PUT(
     if (isPublished !== undefined) updateData.isPublished = isPublished;
     if (isFeatured !== undefined) updateData.isFeatured = isFeatured;
     if (imageUrl !== undefined) updateData.imageUrl = imageUrl;
+    if (videoUrl !== undefined) updateData.videoUrl = videoUrl;
 
-    const event = await prisma.event.update({
+    // Handle eventImages update
+    if (eventImages !== undefined && Array.isArray(eventImages)) {
+      // Delete existing event images
+      try {
+        await (prisma as any).eventImage.deleteMany({
+          where: { eventId: id },
+        });
+      } catch (error) {
+        // Ignore if model doesn't exist yet (for backward compatibility)
+        console.warn('Error deleting event images:', error);
+      }
+
+      // Create new event images
+      if (eventImages.length > 0) {
+        updateData.eventImages = {
+          create: eventImages.map((url: string, index: number) => ({
+            imageUrl: url,
+            isPrimary: index === 0,
+            sortOrder: index,
+          })),
+        };
+      }
+    }
+
+    const event = await (prisma.event.update as any)({
       where: { id },
       data: updateData,
+      include: {
+        eventImages: {
+          orderBy: { sortOrder: "asc" },
+        },
+      },
     });
 
     return NextResponse.json(event);

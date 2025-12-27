@@ -92,17 +92,29 @@ export async function POST(request: NextRequest) {
     } = body;
 
     // Validate required fields
-    if (!firstName || !lastName || !designation) {
+    if (!firstName || !firstName.trim()) {
       return NextResponse.json(
-        { error: "First name, last name, and designation are required" },
+        { error: "First name is required", received: { firstName, lastName, designation } },
+        { status: 400 }
+      );
+    }
+    if (!lastName || !lastName.trim()) {
+      return NextResponse.json(
+        { error: "Last name is required", received: { firstName, lastName, designation } },
+        { status: 400 }
+      );
+    }
+    if (!designation || !designation.trim()) {
+      return NextResponse.json(
+        { error: "Designation is required", received: { firstName, lastName, designation } },
         { status: 400 }
       );
     }
 
-    // Check if email already exists (if provided)
-    if (email) {
+    // Check if email already exists (if provided and not empty)
+    if (email && email.trim()) {
       const existingEmployee = await prisma.employee.findUnique({
-        where: { email },
+        where: { email: email.trim() },
       });
 
       if (existingEmployee) {
@@ -117,14 +129,14 @@ export async function POST(request: NextRequest) {
       data: {
         firstName,
         lastName,
-        email,
-        phone,
+        email: email && email.trim() ? email.trim() : undefined,
+        phone: phone && phone.trim() ? phone.trim() : undefined,
         designation,
-        department,
-        bio,
-        imageUrl,
-        linkedinUrl,
-        managerId,
+        department: department && department.trim() ? department.trim() : undefined,
+        bio: bio && bio.trim() ? bio.trim() : undefined,
+        imageUrl: imageUrl && imageUrl.trim() ? imageUrl.trim() : undefined,
+        linkedinUrl: linkedinUrl && linkedinUrl.trim() ? linkedinUrl.trim() : undefined,
+        managerId: managerId || undefined,
         isActive: isActive !== undefined ? isActive : true,
         sortOrder: sortOrder || 0,
         joinedAt: joinedAt ? new Date(joinedAt) : null,

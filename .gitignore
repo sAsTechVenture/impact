@@ -41,3 +41,9 @@ yarn-error.log*
 next-env.d.ts
 
 /lib/generated/prisma
+
+# Upload directories
+/public/products/uploads
+/public/services/uploads
+/public/events/uploads
+/public/employees/uploads

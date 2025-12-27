@@ -337,6 +337,7 @@ model Event {
   
   // Media
   imageUrl        String?         @db.VarChar(500)
+  videoUrl        String?         @db.VarChar(500)
   
   // Registration
   requiresRegistration Boolean    @default(false)
@@ -353,9 +354,26 @@ model Event {
   createdAt       DateTime        @default(now())
   updatedAt       DateTime        @updatedAt
 
+  // Relations
+  eventImages     EventImage[]
+
   @@index([slug])
   @@index([status])
   @@index([isPublished])
   @@index([startDate])
   @@map("events")
+}
+
+model EventImage {
+  id          String   @id @default(cuid())
+  eventId     String
+  event       Event     @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  imageUrl    String   @db.VarChar(500)
+  altText     String?  @db.VarChar(255)
+  isPrimary   Boolean  @default(false)
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+
+  @@index([eventId])
+  @@map("event_images")
 }

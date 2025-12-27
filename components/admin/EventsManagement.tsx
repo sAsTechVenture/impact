@@ -21,6 +21,19 @@ import {
 	PaginationNext,
 	PaginationPrevious,
 } from '@/components/ui/pagination';
+import { MultipleImageUpload } from '@/components/ui/multiple-image-upload';
+import { VideoUpload } from '@/components/ui/video-upload';
+import {
+	AlertDialog,
+	AlertDialogAction,
+	AlertDialogCancel,
+	AlertDialogContent,
+	AlertDialogDescription,
+	AlertDialogFooter,
+	AlertDialogHeader,
+	AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { colors } from '@/config/theme';
 import {
 	Calendar,
@@ -30,6 +43,7 @@ import {
 	Search,
 	X,
 	Save,
+	Loader2,
 } from 'lucide-react';
 import { api } from '@/utils/api';
 
@@ -42,6 +56,8 @@ interface Event {
 	location?: string;
 	status: 'upcoming' | 'ongoing' | 'completed' | 'cancelled';
 	imageUrl?: string;
+	videoUrl?: string;
+	eventImages?: Array<{ id: string; imageUrl: string; altText?: string; isPrimary: boolean; sortOrder: number }>;
 	createdAt?: string;
 	updatedAt?: string;
 }
@@ -56,7 +72,20 @@ export const EventsManagement: React.FC = () => {
 	const [totalPages, setTotalPages] = useState(1);
 	const [total, setTotal] = useState(0);
 	const ITEMS_PER_PAGE = 5;
-	const [formData, setFormData] = useState<Partial<Event> & { slug?: string }>({
+	const [isSubmitting, setIsSubmitting] = useState(false);
+	const [errorDialog, setErrorDialog] = useState<{ open: boolean; message: string }>({ open: false, message: '' });
+	const [deleteDialog, setDeleteDialog] = useState<{ open: boolean; id: string | null }>({ open: false, id: null });
+	const [formData, setFormData] = useState<{
+		title?: string;
+		slug?: string;
+		description?: string;
+		startDate?: string;
+		endDate?: string;
+		location?: string;
+		status?: 'upcoming' | 'ongoing' | 'completed' | 'cancelled';
+		eventImages?: string[];
+		videoUrl?: string;
+	}>({
 		title: '',
 		slug: '',
 		description: '',
@@ -64,6 +93,8 @@ export const EventsManagement: React.FC = () => {
 		endDate: '',
 		location: '',
 		status: 'upcoming',
+		eventImages: [],
+		videoUrl: '',
 	});
 
 	useEffect(() => {
@@ -112,6 +143,7 @@ export const EventsManagement: React.FC = () => {
 	const handleSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
 		try {
+			setIsSubmitting(true);
 			// Ensure slug is generated if missing
 			const slug = formData.slug || generateSlug(formData.title || '');
 			
@@ -133,6 +165,8 @@ export const EventsManagement: React.FC = () => {
 				slug,
 				startDate,
 				endDate: endDate || undefined,
+				eventImages: formData.eventImages || [],
+				videoUrl: formData.videoUrl || undefined,
 			};
 
 			if (editingEvent) {
@@ -142,20 +176,29 @@ export const EventsManagement: React.FC = () => {
 			}
 			resetForm();
 			fetchEvents();
-		} catch (error) {
+		} catch (error: any) {
 			console.error('Error saving event:', error);
-			alert('Failed to save event. Please try again.');
+			const errorMessage = error?.response?.error || error?.message || 'Failed to save event. Please try again.';
+			setErrorDialog({ open: true, message: errorMessage });
+		} finally {
+			setIsSubmitting(false);
 		}
 	};
 
 	const handleDelete = async (id: string) => {
-		if (!confirm('Are you sure you want to delete this event?')) return;
+		setDeleteDialog({ open: true, id });
+	};
+
+	const confirmDelete = async () => {
+		if (!deleteDialog.id) return;
 		try {
-			await api.events.delete(id);
+			await api.events.delete(deleteDialog.id);
 			fetchEvents();
+			setDeleteDialog({ open: false, id: null });
 		} catch (error) {
 			console.error('Error deleting event:', error);
-			alert('Failed to delete event. Please try again.');
+			setErrorDialog({ open: true, message: 'Failed to delete event. Please try again.' });
+			setDeleteDialog({ open: false, id: null });
 		}
 	};
 
@@ -169,6 +212,8 @@ export const EventsManagement: React.FC = () => {
 			endDate: event.endDate ? event.endDate.split('T')[0] : '',
 			location: event.location || '',
 			status: event.status,
+			eventImages: event.eventImages?.map(img => img.imageUrl) || [],
+			videoUrl: event.videoUrl || '',
 		});
 		setIsModalOpen(true);
 	};
@@ -182,6 +227,8 @@ export const EventsManagement: React.FC = () => {
 			endDate: '',
 			location: '',
 			status: 'upcoming',
+			eventImages: [],
+			videoUrl: '',
 		});
 		setEditingEvent(null);
 		setIsModalOpen(false);
@@ -475,6 +522,23 @@ export const EventsManagement: React.FC = () => {
 									/>
 								</div>
 								<div>
+									<MultipleImageUpload
+										value={formData.eventImages || []}
+										onChange={(urls) => setFormData({ ...formData, eventImages: urls })}
+										folder="events"
+										label="Event Images"
+										maxImages={10}
+									/>
+								</div>
+								<div>
+									<VideoUpload
+										value={formData.videoUrl}
+										onChange={(url) => setFormData({ ...formData, videoUrl: url })}
+										folder="events"
+										label="Event Video"
+									/>
+								</div>
+								<div>
 									<Label htmlFor="status">Status *</Label>
 									<select
 										id="status"
@@ -505,8 +569,13 @@ export const EventsManagement: React.FC = () => {
 									<Button
 										type="submit"
 										style={{ backgroundColor: colors.primary }}
+										disabled={isSubmitting}
 									>
-										<Save className="mr-2 h-4 w-4" />
+										{isSubmitting ? (
+											<Loader2 className="mr-2 h-4 w-4 animate-spin" />
+										) : (
+											<Save className="mr-2 h-4 w-4" />
+										)}
 										{editingEvent ? 'Update' : 'Create'}
 									</Button>
 								</div>
@@ -515,6 +584,32 @@ export const EventsManagement: React.FC = () => {
 					</Card>
 				</div>
 			)}
+
+			{/* Error Dialog */}
+			<Dialog open={errorDialog.open} onOpenChange={(open) => setErrorDialog({ open, message: '' })}>
+				<DialogContent>
+					<DialogHeader>
+						<DialogTitle>Error</DialogTitle>
+						<DialogDescription>{errorDialog.message}</DialogDescription>
+					</DialogHeader>
+				</DialogContent>
+			</Dialog>
+
+			{/* Delete Confirmation Dialog */}
+			<AlertDialog open={deleteDialog.open} onOpenChange={(open) => setDeleteDialog({ open, id: null })}>
+				<AlertDialogContent>
+					<AlertDialogHeader>
+						<AlertDialogTitle>Are you sure?</AlertDialogTitle>
+						<AlertDialogDescription>
+							This action cannot be undone. This will permanently delete the event.
+						</AlertDialogDescription>
+					</AlertDialogHeader>
+					<AlertDialogFooter>
+						<AlertDialogCancel>Cancel</AlertDialogCancel>
+						<AlertDialogAction onClick={confirmDelete}>Delete</AlertDialogAction>
+					</AlertDialogFooter>
+				</AlertDialogContent>
+			</AlertDialog>
 		</div>
 	);
 };

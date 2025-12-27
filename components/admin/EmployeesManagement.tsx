@@ -21,6 +21,18 @@ import {
 	PaginationNext,
 	PaginationPrevious,
 } from '@/components/ui/pagination';
+import { ImageUpload } from '@/components/ui/image-upload';
+import {
+	AlertDialog,
+	AlertDialogAction,
+	AlertDialogCancel,
+	AlertDialogContent,
+	AlertDialogDescription,
+	AlertDialogFooter,
+	AlertDialogHeader,
+	AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { colors } from '@/config/theme';
 import {
 	Users,
@@ -33,6 +45,7 @@ import {
 	ChevronRight,
 	ChevronDown,
 	User,
+	Loader2,
 } from 'lucide-react';
 import { api } from '@/utils/api';
 
@@ -78,7 +91,11 @@ export const EmployeesManagement: React.FC = () => {
 		managerId: '',
 		status: 'active',
 		hireDate: '',
+		imageUrl: '',
 	});
+	const [isSubmitting, setIsSubmitting] = useState(false);
+	const [errorDialog, setErrorDialog] = useState<{ open: boolean; message: string }>({ open: false, message: '' });
+	const [deleteDialog, setDeleteDialog] = useState<{ open: boolean; id: string | null }>({ open: false, id: null });
 
 	useEffect(() => {
 		fetchEmployees();
@@ -137,21 +154,37 @@ export const EmployeesManagement: React.FC = () => {
 	const handleSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
 		try {
+			setIsSubmitting(true);
 			// Map form data to API structure
-			const [firstName, ...lastNameParts] = (formData.name || '').split(' ');
-			const lastName = lastNameParts.join(' ') || '';
+			const nameParts = (formData.name || '').trim().split(/\s+/).filter(part => part.length > 0);
+			if (nameParts.length === 0) {
+				setErrorDialog({ open: true, message: 'Name is required' });
+				setIsSubmitting(false);
+				return;
+			}
+			const firstName = nameParts[0];
+			const lastName = nameParts.slice(1).join(' ') || nameParts[0]; // Use first name as last name if only one word
 			
+			if (!formData.position || !formData.position.trim()) {
+				setErrorDialog({ open: true, message: 'Position/Designation is required' });
+				setIsSubmitting(false);
+				return;
+			}
+
 			const apiData: any = {
-				firstName,
-				lastName,
-				email: formData.email,
-				phone: formData.phone,
-				designation: formData.position || formData.position,
-				department: formData.department,
+				firstName: firstName.trim(),
+				lastName: lastName.trim(),
+				email: formData.email?.trim() || undefined,
+				phone: formData.phone?.trim() || undefined,
+				designation: formData.position.trim(),
+				department: formData.department?.trim() || undefined,
+				imageUrl: formData.imageUrl?.trim() || undefined,
 				managerId: formData.managerId || undefined,
 				isActive: formData.status === 'active',
 				joinedAt: formData.hireDate || undefined,
 			};
+
+			console.log('Submitting employee data:', apiData);
 
 			if (editingEmployee) {
 				await api.employees.update(editingEmployee.id, apiData);
@@ -160,20 +193,29 @@ export const EmployeesManagement: React.FC = () => {
 			}
 			resetForm();
 			fetchEmployees();
-		} catch (error) {
+		} catch (error: any) {
 			console.error('Error saving employee:', error);
-			alert('Failed to save employee. Please try again.');
+			const errorMessage = error?.response?.error || error?.message || 'Failed to save employee. Please try again.';
+			setErrorDialog({ open: true, message: errorMessage });
+		} finally {
+			setIsSubmitting(false);
 		}
 	};
 
 	const handleDelete = async (id: string) => {
-		if (!confirm('Are you sure you want to delete this employee?')) return;
+		setDeleteDialog({ open: true, id });
+	};
+
+	const confirmDelete = async () => {
+		if (!deleteDialog.id) return;
 		try {
-			await api.employees.delete(id);
+			await api.employees.delete(deleteDialog.id);
 			fetchEmployees();
+			setDeleteDialog({ open: false, id: null });
 		} catch (error) {
 			console.error('Error deleting employee:', error);
-			alert('Failed to delete employee. Please try again.');
+			setErrorDialog({ open: true, message: 'Failed to delete employee. Please try again.' });
+			setDeleteDialog({ open: false, id: null });
 		}
 	};
 
@@ -188,6 +230,7 @@ export const EmployeesManagement: React.FC = () => {
 			managerId: employee.managerId || '',
 			status: employee.status || (employee.isActive ? 'active' : 'inactive'),
 			hireDate: employee.hireDate ? employee.hireDate.split('T')[0] : (employee.joinedAt ? employee.joinedAt.split('T')[0] : ''),
+			imageUrl: employee.imageUrl || '',
 		});
 		setIsModalOpen(true);
 	};
@@ -202,6 +245,7 @@ export const EmployeesManagement: React.FC = () => {
 			managerId: '',
 			status: 'active',
 			hireDate: '',
+			imageUrl: '',
 		});
 		setEditingEmployee(null);
 		setIsModalOpen(false);
@@ -523,7 +567,7 @@ export const EmployeesManagement: React.FC = () => {
 										/>
 									</div>
 									<div>
-										<Label htmlFor="email">Email *</Label>
+										<Label htmlFor="email">Email</Label>
 										<Input
 											id="email"
 											type="email"
@@ -531,7 +575,6 @@ export const EmployeesManagement: React.FC = () => {
 											onChange={(e) =>
 												setFormData({ ...formData, email: e.target.value })
 											}
-											required
 										/>
 									</div>
 								</div>
@@ -570,20 +613,28 @@ export const EmployeesManagement: React.FC = () => {
 											}
 										/>
 									</div>
-									<div>
-										<Label htmlFor="hireDate">Hire Date</Label>
-										<Input
-											id="hireDate"
-											type="date"
-											value={formData.hireDate}
-											onChange={(e) =>
-												setFormData({ ...formData, hireDate: e.target.value })
-											}
-										/>
-									</div>
-								</div>
 								<div>
-									<Label htmlFor="managerId">Manager</Label>
+									<Label htmlFor="hireDate">Hire Date</Label>
+									<Input
+										id="hireDate"
+										type="date"
+										value={formData.hireDate}
+										onChange={(e) =>
+											setFormData({ ...formData, hireDate: e.target.value })
+										}
+									/>
+								</div>
+							</div>
+							<div>
+								<ImageUpload
+									value={formData.imageUrl}
+									onChange={(url) => setFormData({ ...formData, imageUrl: url })}
+									folder="employees"
+									label="Employee Image"
+								/>
+							</div>
+							<div>
+								<Label htmlFor="managerId">Manager</Label>
 									<select
 										id="managerId"
 										value={formData.managerId}
@@ -631,8 +682,13 @@ export const EmployeesManagement: React.FC = () => {
 									<Button
 										type="submit"
 										style={{ backgroundColor: colors.primary }}
+										disabled={isSubmitting}
 									>
-										<Save className="mr-2 h-4 w-4" />
+										{isSubmitting ? (
+											<Loader2 className="mr-2 h-4 w-4 animate-spin" />
+										) : (
+											<Save className="mr-2 h-4 w-4" />
+										)}
 										{editingEmployee ? 'Update' : 'Create'}
 									</Button>
 								</div>
@@ -641,6 +697,32 @@ export const EmployeesManagement: React.FC = () => {
 					</Card>
 				</div>
 			)}
+
+			{/* Error Dialog */}
+			<Dialog open={errorDialog.open} onOpenChange={(open) => setErrorDialog({ open, message: '' })}>
+				<DialogContent>
+					<DialogHeader>
+						<DialogTitle>Error</DialogTitle>
+						<DialogDescription>{errorDialog.message}</DialogDescription>
+					</DialogHeader>
+				</DialogContent>
+			</Dialog>
+
+			{/* Delete Confirmation Dialog */}
+			<AlertDialog open={deleteDialog.open} onOpenChange={(open) => setDeleteDialog({ open, id: null })}>
+				<AlertDialogContent>
+					<AlertDialogHeader>
+						<AlertDialogTitle>Are you sure?</AlertDialogTitle>
+						<AlertDialogDescription>
+							This action cannot be undone. This will permanently delete the employee.
+						</AlertDialogDescription>
+					</AlertDialogHeader>
+					<AlertDialogFooter>
+						<AlertDialogCancel>Cancel</AlertDialogCancel>
+						<AlertDialogAction onClick={confirmDelete}>Delete</AlertDialogAction>
+					</AlertDialogFooter>
+				</AlertDialogContent>
+			</AlertDialog>
 		</div>
 	);
 };

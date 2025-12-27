@@ -21,6 +21,17 @@ import {
 	PaginationNext,
 	PaginationPrevious,
 } from '@/components/ui/pagination';
+import {
+	AlertDialog,
+	AlertDialogAction,
+	AlertDialogCancel,
+	AlertDialogContent,
+	AlertDialogDescription,
+	AlertDialogFooter,
+	AlertDialogHeader,
+	AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { colors } from '@/config/theme';
 import {
 	Briefcase,
@@ -32,6 +43,7 @@ import {
 	Users,
 	Search,
 	Building2,
+	Loader2,
 } from 'lucide-react';
 import { api } from '@/utils/api';
 
@@ -95,6 +107,11 @@ export const LifeCareerManagement: React.FC = () => {
 	const [totalPages, setTotalPages] = useState(1);
 	const [total, setTotal] = useState(0);
 	const ITEMS_PER_PAGE = 5;
+	const [isSubmittingJob, setIsSubmittingJob] = useState(false);
+	const [isSubmittingDepartment, setIsSubmittingDepartment] = useState(false);
+	const [errorDialog, setErrorDialog] = useState<{ open: boolean; message: string }>({ open: false, message: '' });
+	const [deleteJobDialog, setDeleteJobDialog] = useState<{ open: boolean; id: string | null }>({ open: false, id: null });
+	const [deleteDepartmentDialog, setDeleteDepartmentDialog] = useState<{ open: boolean; id: string | null }>({ open: false, id: null });
 	const [isJobModalOpen, setIsJobModalOpen] = useState(false);
 	const [isDepartmentModalOpen, setIsDepartmentModalOpen] = useState(false);
 	const [editingJob, setEditingJob] = useState<JobPosting | null>(null);
@@ -179,6 +196,7 @@ export const LifeCareerManagement: React.FC = () => {
 	const handleJobSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
 		try {
+			setIsSubmittingJob(true);
 			const jobData = {
 				...jobFormData,
 				slug: editingJob?.slug || generateSlug(jobFormData.title || ''),
@@ -190,15 +208,19 @@ export const LifeCareerManagement: React.FC = () => {
 			}
 			resetJobForm();
 			fetchData();
-		} catch (error) {
+		} catch (error: any) {
 			console.error('Error saving job posting:', error);
-			alert('Failed to save job posting. Please try again.');
+			const errorMessage = error?.response?.error || error?.message || 'Failed to save job posting. Please try again.';
+			setErrorDialog({ open: true, message: errorMessage });
+		} finally {
+			setIsSubmittingJob(false);
 		}
 	};
 
 	const handleDepartmentSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
 		try {
+			setIsSubmittingDepartment(true);
 			if (editingDepartment) {
 				await api.departments.update(editingDepartment.id, departmentFormData);
 			} else {
@@ -206,35 +228,50 @@ export const LifeCareerManagement: React.FC = () => {
 			}
 			resetDepartmentForm();
 			fetchData();
-		} catch (error) {
+		} catch (error: any) {
 			console.error('Error saving department:', error);
-			alert('Failed to save department. Please try again.');
+			const errorMessage = error?.response?.error || error?.message || 'Failed to save department. Please try again.';
+			setErrorDialog({ open: true, message: errorMessage });
+		} finally {
+			setIsSubmittingDepartment(false);
 		}
 	};
 
 	const handleJobDelete = async (id: string) => {
-		if (!confirm('Are you sure you want to delete this job posting?')) return;
+		setDeleteJobDialog({ open: true, id });
+	};
+
+	const confirmJobDelete = async () => {
+		if (!deleteJobDialog.id) return;
 		try {
-			await api.jobPostings.delete(id);
-			if (selectedJobId === id) {
+			await api.jobPostings.delete(deleteJobDialog.id);
+			if (selectedJobId === deleteJobDialog.id) {
 				setSelectedJobId(null);
 				setApplications([]);
 			}
 			fetchData();
+			setDeleteJobDialog({ open: false, id: null });
 		} catch (error) {
 			console.error('Error deleting job posting:', error);
-			alert('Failed to delete job posting. Please try again.');
+			setErrorDialog({ open: true, message: 'Failed to delete job posting. Please try again.' });
+			setDeleteJobDialog({ open: false, id: null });
 		}
 	};
 
 	const handleDepartmentDelete = async (id: string) => {
-		if (!confirm('Are you sure you want to delete this department?')) return;
+		setDeleteDepartmentDialog({ open: true, id });
+	};
+
+	const confirmDepartmentDelete = async () => {
+		if (!deleteDepartmentDialog.id) return;
 		try {
-			await api.departments.delete(id);
+			await api.departments.delete(deleteDepartmentDialog.id);
 			fetchData();
+			setDeleteDepartmentDialog({ open: false, id: null });
 		} catch (error) {
 			console.error('Error deleting department:', error);
-			alert('Failed to delete department. Please try again.');
+			setErrorDialog({ open: true, message: 'Failed to delete department. Please try again.' });
+			setDeleteDepartmentDialog({ open: false, id: null });
 		}
 	};
 
@@ -612,7 +649,7 @@ export const LifeCareerManagement: React.FC = () => {
 																fetchApplications(selectedJobId);
 															} catch (error) {
 																console.error('Error updating application:', error);
-																alert('Failed to update application status.');
+																setErrorDialog({ open: true, message: 'Failed to update application status.' });
 															}
 														}
 													}}
@@ -839,8 +876,13 @@ export const LifeCareerManagement: React.FC = () => {
 									<Button
 										type="submit"
 										style={{ backgroundColor: colors.primary }}
+										disabled={isSubmittingJob}
 									>
-										<Save className="mr-2 h-4 w-4" />
+										{isSubmittingJob ? (
+											<Loader2 className="mr-2 h-4 w-4 animate-spin" />
+										) : (
+											<Save className="mr-2 h-4 w-4" />
+										)}
 										{editingJob ? 'Update' : 'Create'}
 									</Button>
 								</div>
@@ -914,8 +956,13 @@ export const LifeCareerManagement: React.FC = () => {
 									<Button
 										type="submit"
 										style={{ backgroundColor: colors.primary }}
+										disabled={isSubmittingDepartment}
 									>
-										<Save className="mr-2 h-4 w-4" />
+										{isSubmittingDepartment ? (
+											<Loader2 className="mr-2 h-4 w-4 animate-spin" />
+										) : (
+											<Save className="mr-2 h-4 w-4" />
+										)}
 										{editingDepartment ? 'Update' : 'Create'}
 									</Button>
 								</div>
@@ -924,6 +971,48 @@ export const LifeCareerManagement: React.FC = () => {
 					</Card>
 				</div>
 			)}
+
+			{/* Error Dialog */}
+			<Dialog open={errorDialog.open} onOpenChange={(open) => setErrorDialog({ open, message: '' })}>
+				<DialogContent>
+					<DialogHeader>
+						<DialogTitle>Error</DialogTitle>
+						<DialogDescription>{errorDialog.message}</DialogDescription>
+					</DialogHeader>
+				</DialogContent>
+			</Dialog>
+
+			{/* Delete Job Confirmation Dialog */}
+			<AlertDialog open={deleteJobDialog.open} onOpenChange={(open) => setDeleteJobDialog({ open, id: null })}>
+				<AlertDialogContent>
+					<AlertDialogHeader>
+						<AlertDialogTitle>Are you sure?</AlertDialogTitle>
+						<AlertDialogDescription>
+							This action cannot be undone. This will permanently delete the job posting.
+						</AlertDialogDescription>
+					</AlertDialogHeader>
+					<AlertDialogFooter>
+						<AlertDialogCancel>Cancel</AlertDialogCancel>
+						<AlertDialogAction onClick={confirmJobDelete}>Delete</AlertDialogAction>
+					</AlertDialogFooter>
+				</AlertDialogContent>
+			</AlertDialog>
+
+			{/* Delete Department Confirmation Dialog */}
+			<AlertDialog open={deleteDepartmentDialog.open} onOpenChange={(open) => setDeleteDepartmentDialog({ open, id: null })}>
+				<AlertDialogContent>
+					<AlertDialogHeader>
+						<AlertDialogTitle>Are you sure?</AlertDialogTitle>
+						<AlertDialogDescription>
+							This action cannot be undone. This will permanently delete the department.
+						</AlertDialogDescription>
+					</AlertDialogHeader>
+					<AlertDialogFooter>
+						<AlertDialogCancel>Cancel</AlertDialogCancel>
+						<AlertDialogAction onClick={confirmDepartmentDelete}>Delete</AlertDialogAction>
+					</AlertDialogFooter>
+				</AlertDialogContent>
+			</AlertDialog>
 		</div>
 	);
 };
